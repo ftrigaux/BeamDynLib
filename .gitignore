@@ -1,0 +1,4 @@
+obj
+**/.DS_Store
+run/nrel5mw_dynamic/disp*.dat
+BeamDyn
