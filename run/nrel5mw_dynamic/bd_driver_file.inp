@@ -3,7 +3,7 @@ Dynamic analysis of rotating NREL 5MW blade under gravity force
 ---------------------- SIMULATION CONTROL ----------------------
 True             DynamicSolve
 0.000000e+00     t_initial
-1.000000e+00     t_final
+1.000000e-01     t_final
 2.000000e-03     dt
 ---------------------- GRAVITY PARAMETERS ----------------------
 0.000000e+00     Gx
