@@ -485,8 +485,9 @@ subroutine CreateMultiPointMeshes(DvrData,BD_InitInput,BD_InitOutput,BD_Paramete
                               ,ErrMess = ErrMsg2       &
                               ,Orient  = DCM           )
        CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
-
    ENDDO
+
+   
    
    DO i = 1,DvrData%NumPointLoads
        CALL MeshConstructElement( Mesh     = DvrData%mplMotion      &

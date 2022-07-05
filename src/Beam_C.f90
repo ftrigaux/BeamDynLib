@@ -1,0 +1,725 @@
+!**********************************************************************************************************************************
+! LICENSING
+! Copyright (C) 2022  Francois Trigaux (UCLouvain, BELGIUM)
+! 
+!
+! Licensed under the Apache License, Version 2.0 (the "License");
+! you may not use this file except in compliance with the License.
+! You may obtain a copy of the License at
+!
+!     http://www.apache.org/licenses/LICENSE-2.0
+!
+! Unless required by applicable law or agreed to in writing, software
+! distributed under the License is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the License for the specific language governing permissions and
+! limitations under the License.
+!
+!**********************************************************************************************************************************
+MODULE BeamDyn_C
+
+   USE ISO_C_BINDING
+   USE BeamDyn_driver_subs  ! all other modules inherited through this one
+
+   IMPLICIT NONE
+
+   PUBLIC :: BeamDyn_C_Init
+   PUBLIC :: BeamDyn_C_setLoads
+   PUBLIC :: BeamDyn_C_Solve
+   PUBLIC :: BeamDyn_C_getDisp
+   PUBLIC :: BeamDyn_C_End
+
+   TYPE , PUBLIC :: BD_UsrDataType
+      LOGICAL        :: DynamicSolve  ! flag for dynamic or static solve (static:false)
+      LOGICAL        :: GlbRotBladeT0 ! Initial blade root orientation is also the GlbRot reference frame
+
+      INTEGER(IntKi) :: nx;           ! Number of nodes
+      REAL(ReKi),DIMENSION(:,:), ALLOCATABLE  :: x;         ! Nodes coordinates
+
+      REAL(DbKi)     :: t             ! time
+      REAL(DbKi)     :: dt            ! time increment
+      INTEGER(IntKi) :: nt            ! number of substep
+      
+      REAL(DbKi)     :: GlbPos(3)        ! Initial vector position 
+      REAL(DbKi)     :: RootOri(3,3)     ! DCM of the initial root orientation
+      REAL(DbKi)     :: GlbRot(3,3)      ! 
+      REAL(DbKi)     :: RootRelInit(3,3)
+
+      REAL(DbKi)     :: omega(3)      ! Angular velocity vector
+      REAL(DbKi)     :: dOmega(3)     ! Angular acceleration vector
+
+      REAL(DbKi),DIMENSION(:,:), ALLOCATABLE         :: loads    ! Forces and moment at the node positions; Size(NNodes,6)
+      REAL(DbKi)                                     :: grav(3)  ! Gravity vector
+
+      REAL(DbKi),DIMENSION(:,:), ALLOCATABLE         :: u        ! Displacement variables (u,v,w,phi,th1,th2); Size(NNodes,6)
+      REAL(DbKi),DIMENSION(:,:), ALLOCATABLE         :: du       ! Velocity variables d(u,v,w,phi,th1,th2)/dt; Size(NNodes,6)
+
+      CHARACTER(1024)  :: InputFile      !< Name of the input file; remove if there is no file [-]
+
+      ! Data for fortran
+      REAL(R8Ki)                                    :: w           ! magnitude of rotational velocity vector
+      TYPE(MeshType)                                :: RotationCenter
+      TYPE(MeshMapType)                             :: Map_RotationCenter_to_RootMotion
+
+   END TYPE
+
+   ! global glue-code-specific variables
+   REAL :: start
+   REAL :: finish
+
+   INTEGER(IntKi)                   :: ErrStat          ! Error status of the operation
+   CHARACTER(1024)                  :: ErrMsg           ! Error message if ErrStat /= ErrID_None
+   INTEGER(IntKi), parameter        :: BD_interp_order = 1  ! order of interpolation/extrapolation
+
+   ! Module1 Derived-types variables; see Registry_Module1.txt for details
+
+   TYPE(BD_InitInputType)           :: BD_InitInput
+   TYPE(BD_ParameterType)           :: BD_Parameter
+   TYPE(BD_ContinuousStateType)     :: BD_ContinuousState
+   TYPE(BD_InitOutputType)          :: BD_InitOutput
+   TYPE(BD_DiscreteStateType)       :: BD_DiscreteState
+   TYPE(BD_ConstraintStateType)     :: BD_ConstraintState
+   TYPE(BD_OtherStateType)          :: BD_OtherState
+   TYPE(BD_MiscVarType)             :: BD_MiscVar
+   TYPE(BD_InputType) ,ALLOCATABLE  :: BD_Input(:)
+   REAL(DbKi),         ALLOCATABLE  :: BD_InputTimes(:)
+   TYPE(BD_OutputType)              :: BD_Output
+   INTEGER(IntKi)                   :: DvrOut 
+   TYPE(BD_UsrDataType)             :: BD_UsrData
+   
+   TYPE(BD_DriverInternalType)      :: DvrData
+
+   ! local variables
+   
+   CHARACTER(256)                   :: DvrInputFile
+   CHARACTER(256)                   :: RootName
+   INTEGER(IntKi)                   :: j             ! counter for various loops
+   INTEGER(IntKi)                   :: i             ! counter for various loops   
+   INTEGER(IntKi)                   :: max_ld_step=8 ! maximum load steps for static runs.
+   REAL(DbKi)                       :: TiLstPrn      ! The simulation time of the last print (to file) [(s)]
+   REAL(ReKi)                       :: PrevClockTime ! Clock time at start of simulation in seconds [(s)]
+   REAL(ReKi)                       :: UsrTime1      ! User CPU time for simulation initialization [(s)]
+   REAL(ReKi)                       :: UsrTime2      ! User CPU time for simulation (without intialization) [(s)]
+   INTEGER(IntKi) , DIMENSION(1:8)  :: StrtTime      ! Start time of simulation (including intialization) [-]
+   INTEGER(IntKi) , DIMENSION(1:8)  :: SimStrtTime   ! Start time of simulation (after initialization) [-]
+   CHARACTER(200)                   :: git_commit    ! String containing the current git commit hash
+
+   TYPE(ProgDesc), PARAMETER        :: version   = ProgDesc( 'BeamDyn Driver', '', '' )  ! The version number of this program.
+
+   ! User values
+   ! TYPE(MeshType)      :: usrLoadsMesh
+   ! TYPE(MeshMapType)   :: usrLoadsMap
+   ! TYPE(MeshType)      :: usrDispMesh
+   ! TYPE(MeshMapType)   :: usrDispMap
+
+   ! Test user input
+   INTEGER(IntKi) :: NNodes = 24
+   REAL(ReKi)     :: Pos(24,3)
+   REAL(DbKi)     :: DistrLoads(24,6);
+   
+   CONTAINS
+
+   ! Initialization
+   SUBROUTINE BeamDyn_C_Init()  BIND (C, NAME='BeamDyn_C_Init')
+      IMPLICIT NONE
+
+      CALL DATE_AND_TIME ( Values=StrtTime )                 ! Let's time the whole simulation
+      CALL CPU_TIME ( UsrTime1 )                             ! Initial time (this zeros the start time when used as a MATLAB function)
+      UsrTime1 = MAX( 0.0_ReKi, UsrTime1 )                   ! CPU_TIME: If a meaningful time cannot be returned, a processor-dependent negative value is returned
+
+      CALL NWTC_Init()
+
+      ! Read Driver input file is replaced by an initialization through the UsrData structure
+      !CALL GET_COMMAND_ARGUMENT(1,DvrInputFile)
+      !CALL GetRoot(DvrInputFile,RootName)
+      !CALL BD_ReadDvrFile(DvrInputFile,dt_global,BD_InitInput,DvrData,ErrStat,ErrMsg)
+      !   CALL CheckError()
+      CALL BD_initFromUsrData(ErrStat,ErrMsg);
+      CALL CheckError()
+
+      !Module1: allocate Input and Output arrays; used for interpolation and extrapolation
+      ALLOCATE(BD_Input(BD_interp_order + 1)) 
+      ALLOCATE(BD_InputTimes(BD_interp_order + 1)) 
+
+      CALL BD_Init(BD_InitInput            &
+                     , BD_Input(1)         &
+                     , BD_Parameter        &
+                     , BD_ContinuousState  &
+                     , BD_DiscreteState    &
+                     , BD_ConstraintState  &
+                     , BD_OtherState       &
+                     , BD_Output           &
+                     , BD_MiscVar          &
+                     , BD_UsrData%dt       &
+                     , BD_InitOutput       &
+                     , ErrStat             &
+                     , ErrMsg )
+         CALL CheckError()
+      
+         ! If the Quasi-Static solve is in use, rerun the initialization with loads at t=0 
+         ! (HACK: set in the driver only because computing Jacobians with this option [as in FAST glue code] is problematic)
+      BD_OtherState%RunQuasiStaticInit = BD_Parameter%analysis_type == BD_DYN_SSS_ANALYSIS
+
+
+      ! Set the Initial root orientation
+      ! BD_Input(1)%RootMotion%Orientation(1:3,1:3,1) = DvrData%RootRelInit
+      BD_Input(1)%RootMotion%Orientation(1:3,1:3,1) = BD_UsrData%RootRelInit
+         
+      CALL BDuser_InitRotationCenterMesh(BD_UsrData, BD_InitInput, BD_Input(1)%RootMotion, ErrStat, ErrMsg)
+         CALL CheckError()
+
+      ! 
+      ! CALL CreateMultiPointMeshes(DvrData,BD_InitInput,BD_InitOutput,BD_Parameter, BD_Output, BD_Input(1), ErrStat, ErrMsg)   
+      ! CALL Transfer_MultipointLoads(DvrData, BD_Output, BD_Input(1), ErrStat, ErrMsg)   
+      
+      ! CALL Dvr_InitializeOutputFile(DvrOut,BD_InitOutput,RootName,ErrStat,ErrMsg)
+      !   CALL CheckError()
+
+         
+         ! initialize BD_Input and BD_InputTimes
+      BD_InputTimes(1) = BD_UsrData%t
+      !CALL BD_InputSolve( BD_InputTimes(1), BD_Input(1), DvrData, ErrStat, ErrMsg)
+      CALL BDUsr_InputSolve(ErrStat,ErrMsg)
+      
+      DO j = 2,BD_interp_order+1
+            ! create new meshes
+         CALL BD_CopyInput (BD_Input(1) , BD_Input(j) , MESH_NEWCOPY, ErrStat, ErrMsg)
+            CALL CheckError()
+            
+            ! solve for inputs at previous time steps
+         BD_InputTimes(j) = BD_UsrData%t - (j - 1) * bd_usrdata%dt
+         ! CALL BD_InputSolve( BD_InputTimes(j), BD_Input(j), DvrData, ErrStat, ErrMsg)
+         CALL BDUsr_InputSolve(ErrStat,ErrMsg)
+            CALL CheckError()
+      END DO
+
+      CALL initUsrData()
+
+
+   END SUBROUTINE BeamDyn_C_Init
+
+   SUBROUTINE BeamDyn_C_Solve()  BIND (C, NAME='BeamDyn_C_Solve')
+   IMPLICIT NONE
+
+      INTEGER(IntKi)  :: it
+
+      !.........................
+      ! calculate outputs at t=0
+      !.........................
+   CALL BD_CalcOutput( BD_UsrData%t, BD_Input(1), BD_Parameter, BD_ContinuousState, BD_DiscreteState, &
+                           BD_ConstraintState, BD_OtherState,  BD_Output, BD_MiscVar, ErrStat, ErrMsg)
+      CALL CheckError()
+   
+   ! CALL Dvr_WriteOutputLine(bd_usrdata%t,DvrOut,BD_Parameter%OutFmt,BD_Output)
+   
+      !.........................
+      ! time marching
+      !.........................
+     
+   
+   DO it = 1, BD_UsrData%nt
+
+      ! Shift "window" of BD_Input 
+      DO j = BD_interp_order, 1, -1
+         CALL BD_CopyInput (BD_Input(j),  BD_Input(j+1),  MESH_UPDATECOPY, Errstat, ErrMsg)
+            CALL CheckError()
+         BD_InputTimes(j+1) = BD_InputTimes(j)
+      END DO
+      
+      BD_InputTimes(1)  = bd_usrdata%t + bd_usrdata%dt
+      !CALL BD_InputSolve( BD_InputTimes(1), BD_Input(1), DvrData, ErrStat, ErrMsg)
+      CALL BDUsr_InputSolve(ErrStat,ErrMsg)
+         CALL CheckError()
+      
+                       
+     IF(BD_Parameter%analysis_type .EQ. BD_STATIC_ANALYSIS .AND. it > max_ld_step) EXIT
+
+      ! update states from n_t_global to n_t_global + 1
+     CALL BD_UpdateStates( BD_UsrData%t, it, BD_Input, BD_InputTimes, BD_Parameter, &
+                               BD_ContinuousState, &
+                               BD_DiscreteState, BD_ConstraintState, &
+                               BD_OtherState, BD_MiscVar, ErrStat, ErrMsg )
+        CALL CheckError()
+
+        
+      ! advance time
+     BD_UsrData%t = BD_UsrData%t + BD_UsrData%dt
+     WRITE(*,*) BD_UsrData%t
+           
+      ! calculate outputs at n_t_global + 1
+     CALL BD_CalcOutput( BD_UsrData%t, BD_Input(1), BD_Parameter, BD_ContinuousState, BD_DiscreteState, &
+                             BD_ConstraintState, BD_OtherState,  BD_Output, BD_MiscVar, ErrStat, ErrMsg)
+        CALL CheckError()
+
+     !CALL Dvr_WriteOutputLine(t_global,DvrOut,BD_Parameter%OutFmt,BD_Output)
+
+   ENDDO
+
+   CALL RunTimes( StrtTime, UsrTime1, SimStrtTime, UsrTime2, BD_UsrData%t )
+
+   END SUBROUTINE BeamDyn_C_Solve
+
+   SUBROUTINE BeamDyn_C_End()  BIND (C, NAME='BeamDyn_C_End')
+   IMPLICIT NONE
+
+      character(ErrMsgLen)                          :: errMsg2                 ! temporary Error message if ErrStat /=
+      integer(IntKi)                                :: errStat2                ! temporary Error status of the operation
+      character(*), parameter                       :: RoutineName = 'Dvr_End'
+
+      IF(DvrOut >0) CLOSE(DvrOut)
+
+      IF ( ALLOCATED(BD_Input) ) THEN
+         CALL BD_End( BD_Input(1), BD_Parameter, BD_ContinuousState, BD_DiscreteState, &
+               BD_ConstraintState, BD_OtherState, BD_Output, BD_MiscVar, ErrStat2, ErrMsg2 )
+            CALL SetErrStat( errStat2, errMsg2, errStat, errMsg, RoutineName )
+      
+         DO i=2,BD_interp_order + 1
+            CALL BD_DestroyInput( BD_Input(i), ErrStat2, ErrMsg2 )
+            CALL SetErrStat( errStat2, errMsg2, errStat, errMsg, RoutineName )
+         ENDDO
+         
+         DEALLOCATE(BD_Input)
+      END IF
+
+      IF(ALLOCATED(BD_InputTimes )) DEALLOCATE(BD_InputTimes )
+      if(allocated(DvrData%MultiPointLoad)) deallocate(DvrData%MultiPointLoad)
+
+      CALL freeUsrData
+      
+      if (ErrStat >= AbortErrLev) then      
+         CALL ProgAbort( 'BeamDyn Driver encountered simulation error level: '&
+             //TRIM(GetErrStr(ErrStat)), TrapErrors=.FALSE., TimeWait=3._ReKi )  ! wait 3 seconds (in case they double-clicked and got an error)
+      else
+         CALL NormStop()
+      end if
+
+   END SUBROUTINE BeamDyn_C_End
+
+   SUBROUTINE CheckError()
+   
+      if (ErrStat /= ErrID_None) then
+         CALL WrScr(TRIM(ErrMsg))
+         
+         if (ErrStat >= AbortErrLev) then
+            CALL BeamDyn_C_End()
+         end if
+      end if
+         
+   end SUBROUTINE CheckError
+
+
+   ! Creates a mesh for the user distributed loads
+   ! SUBROUTINE initUsrData(Pos,NNodes)
+
+   !    INTEGER(IntKi), INTENT(IN)      :: NNodes   
+   !    REAL(r8Ki)    , INTENT(IN)      :: Pos(NNodes,3)
+
+   !    real(r8Ki)                                 :: orientation(3,3)
+
+   !    integer(intKi)                  :: ErrStat2          ! temporary Error status
+   !    character(ErrMsgLen)            :: ErrMsg2           ! temporary Error message
+   !    character(*), parameter         :: RoutineName = 'InitUsrLoads'
+
+   !    ! Initialize mesh for the user loads
+   !    CALL MeshCreate( BlankMesh    = usrLoadsMesh       &
+   !                   , IOS          = COMPONENT_INPUT    &
+   !                   , NNodes       = Nnodes   &
+   !                   , Orientation  = .TRUE. &
+   !                   , Force        = .TRUE. &
+   !                   , Moment       = .True. &
+   !                   , ErrStat      = ErrStat2 &
+   !                   , ErrMess      = ErrMsg2)
+   !    CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+   !    if (ErrStat>=AbortErrLev) return
+
+   !    ! Assign node position
+   !    CALL eye(orientation,ErrStat2, ErrMsg2); ! Here, we assume no twist
+   !    DO i=1,NNodes
+   !       CALL MeshPositionNode ( Mesh    = usrLoadsMesh  &
+   !                              ,INode   = i     &
+   !                              ,Pos     = Pos(i,:)          &
+   !                              ,ErrStat = ErrStat2     &
+   !                              ,ErrMess = ErrMsg2      &
+   !                              ,Orient  = orientation ) ! Orientation is set to global frame
+   !          CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+   !    ENDDO
+      
+   !    ! Construct elements
+   !    DO i=1,NNodes-1
+   !    CALL MeshConstructElement( Mesh      = usrLoadsMesh     &
+   !                               ,Xelement = ELEMENT_LINE2    &
+   !                               ,P1       = i                &
+   !                               ,P2       = i+1              &
+   !                               ,ErrStat  = ErrStat2         &
+   !                               ,ErrMess  = ErrMsg2          )
+   !       CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+   !    ENDDO
+
+   !    ! Commit the mesh
+   !    CALL MeshCommit ( Mesh    = usrLoadsMesh      &
+   !                      ,ErrStat = ErrStat2        &
+   !                      ,ErrMess = ErrMsg2         )
+   !    CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+
+   !    ! initial guesses
+   !    usrLoadsMesh%Force  = 0.0_ReKi
+   !    usrLoadsMesh%Moment = 0.0_ReKi
+
+   !    ! Initialize the mapping between user loads and blade mesh
+   !    WRITE(*,*) "Create Laod Map"
+   !    CALL MeshMapCreate( usrLoadsMesh, BD_Input(1)%DistrLoad, usrLoadsMap, ErrStat2, ErrMsg2 )
+   !    CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+
+   !    ! Copy the mesh for the blade displacement (same positions and orientation, but different fields)
+   !    CALL MeshCopy( usrLoadsMesh, usrDispMesh, MESH_SIBLING, ErrStat2, ErrMsg2 &
+   !                 , IOS              = COMPONENT_OUTPUT                        &
+   !                 , TranslationDisp  = .TRUE.                                  &
+   !                 , Orientation      = .TRUE.                                  &
+   !                 , TranslationVel   = .TRUE.                                  &
+   !                 , RotationVel      = .TRUE.)
+   !    CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+
+   !    ! Initialize the mapping between user displacement and blade displacement
+   !    WRITE(*,*) "Create Disp Map"
+
+   !    CALL MeshMapCreate( usrDispMesh, BD_Output%BldMotion, usrDispMap, ErrStat2, ErrMsg2 )
+   !    CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+
+   !    END SUBROUTINE initUsrData
+
+   !    SUBROUTINE setUsrLoads(NNodes, DistrLoad)
+
+   !       INTEGER(IntKi)    , INTENT(IN)      :: NNodes   
+   !       REAL(DbKi)        , INTENT(IN)      :: DistrLoad(NNodes,6)
+
+   !       integer(intKi)                  :: ErrStat2          ! temporary Error status
+   !       character(ErrMsgLen)            :: ErrMsg2           ! temporary Error message
+   !       character(*), parameter         :: RoutineName = 'setUsrLoads'
+
+   !       DO i=1,usrLoadsMesh%NNodes
+   !          usrLoadsMesh%Force(:,i)  =  DistrLoad(i,1:3)
+   !          usrLoadsMesh%Moment(:,i) =  DistrLoad(i,4:6)
+   !       ENDDO
+
+   !       ! Transfer distributed loads from the user defined loads to the BD inputs
+   !       CALL Transfer_Line2_to_Line2(usrLoadsMesh, BD_Input(1)%DistrLoad, usrLoadsMap, ErrStat2, ErrMsg2 &
+   !                                    , SrcDisp = usrLoadsMesh &
+   !                                    , DestDisp = BD_Output%BldMotion)
+   !       CALL SetErrStat(ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+
+   !    END SUBROUTINE setUsrLoads
+
+   !    SUBROUTINE getUsrDisp(Disp,Vel,NNodes)
+   !       INTEGER(IntKi)    , INTENT(IN)      :: NNodes 
+   !       Real(DbKi)        , INTENT(OUT)     :: Disp(NNodes,6)
+   !       Real(DbKi)        , INTENT(OUT)     :: Vel(NNodes,6)
+
+   !       Real(r8Ki) :: angles(3)
+
+   !       integer(intKi)                  :: ErrStat2          ! temporary Error status
+   !       character(ErrMsgLen)            :: ErrMsg2           ! temporary Error message
+   !       character(*), parameter         :: RoutineName = 'getUsrDisp'
+
+   !       CALL Transfer_Line2_to_Line2(BD_Output%BldMotion, usrDispMesh, usrDispMap, ErrStat2, ErrMsg2)
+   !       CALL SetErrStat(ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+
+   !       DO i=1,NNodes
+   !          Disp(i,1:3) = usrDispMesh%TranslationDisp(1:3,i)
+   !          CALL BD_CrvExtractCrv(usrDispMesh%Orientation(1:3,1:3,i),angles,ErrStat,ErrMsg)
+   !          Disp(i,4:6) = angles
+
+   !          Vel(i,1:3) = usrDispMesh%TranslationVel(1:3,i)
+   !          Vel(i,4:6) = usrDispMesh%RotationVel(1:3,i)
+
+   !       ENDDO
+   !    END SUBROUTINE getUsrDisp
+
+   !    SUBROUTINE freeUsrData()
+   !       CALL MeshDestroy(usrDispMesh,ErrStat,ErrMsg)
+   !       CALL MeshDestroy(usrLoadsMesh,ErrStat,ErrMsg)
+
+   !       CALL NWTC_Library_Destroymeshmaptype( usrDispMap, ErrStat, ErrMsg )
+   !       CALL NWTC_Library_Destroymeshmaptype( usrLoadsMap, ErrStat, ErrMsg )
+   !    END SUBROUTINE freeUsrData
+
+
+   SUBROUTINE initUsrData()
+
+      BD_UsrData%nx = BD_Input(1)%DistrLoad%NNodes
+
+      ALLOCATE(BD_UsrData%x(BD_UsrData%nx,3))
+      ALLOCATE(BD_UsrData%loads(BD_UsrData%nx,6))
+      ALLOCATE(BD_UsrData%u(BD_UsrData%nx,6))
+      ALLOCATE(BD_UsrData%du(BD_UsrData%nx,6))
+
+      DO i=1,BD_UsrData%nx
+         BD_UsrData%x(i,1:3) = BD_Input(1)%DistrLoad%Position(1:3,i)
+      ENDDO
+
+
+
+   END SUBROUTINE initUsrData
+
+   SUBROUTINE freeUsrData()
+      IF (ALLOCATED(BD_UsrData%x))       DEALLOCATE(BD_UsrData%x)
+      IF (ALLOCATED(BD_UsrData%loads))   DEALLOCATE(BD_UsrData%loads)
+      IF (ALLOCATED(BD_UsrData%u))       DEALLOCATE(BD_UsrData%u)
+      IF (ALLOCATED(BD_UsrData%du))      DEALLOCATE(BD_UsrData%du)
+   END SUBROUTINE freeUsrData
+
+
+   SUBROUTINE BeamDyn_C_setLoads(loads)
+
+      REAL(R8Ki),INTENT(IN) :: loads(:,:)
+
+      DO i=1,BD_UsrData%nx
+         BD_UsrData%loads(i,:) =  loads(i,:)
+
+         BD_Input(1)%DistrLoad%Force(:,i) =  loads(i,1:3)
+         BD_Input(1)%DistrLoad%Moment(:,i)=  loads(i,4:6)
+      ENDDO
+
+   END SUBROUTINE BeamDyn_C_setLoads
+
+   SUBROUTINE BeamDyn_C_getDisp()
+
+      REAL(R8Ki) :: angles(3)
+
+      DO i=1,BD_Output%BldMotion%Nnodes
+         CALL BD_CrvExtractCrv(BD_Output%BldMotion%Orientation(1:3,1:3,i),angles,ErrStat,ErrMsg)
+         BD_UsrData%u(i,1:3)  = BD_Output%BldMotion%TranslationDisp(1:3,i);
+         BD_UsrData%u(i,4:6)  = angles;
+         BD_UsrData%du(i,1:3) = BD_Output%BldMotion%TranslationVel(1:3,i);
+         BD_UsrData%du(i,4:6) = BD_Output%BldMotion%RotationVel(1:3,i);
+      ENDDO
+
+   END SUBROUTINE BeamDyn_C_getDisp
+
+
+
+   SUBROUTINE BD_initFromUsrData(ErrStat,ErrMsg)
+
+   INTEGER(IntKi),               INTENT(  OUT) :: ErrStat
+   CHARACTER(*),                 INTENT(  OUT) :: ErrMsg
+
+   INTEGER(IntKi)               :: ErrStat2                     ! Temporary Error status
+   CHARACTER(ErrMsgLen)         :: ErrMsg2                      ! Temporary Error message
+   character(*), parameter      :: RoutineName = 'BD_initFromUsrData'
+
+   !---------------------- SIMULATION CONTROL --------------------------------------
+   ! Set : DynamicSolve, t_initial, t_final, nt
+      
+   !---------------------- GRAVITY PARAMETER --------------------------------------
+   BD_InitInput%gravity(:) = 0.0_ReKi
+   BD_InitInput%gravity(1:3) = BD_UsrData%grav(1:3)
+   
+   !---------------------- FRAME PARAMETER --------------------------------------
+   ! Not set: GlbRotBladeT0
+   BD_InitInput%GlbPos(:)   = 0.0_ReKi
+   BD_InitInput%GlbRot(:,:) = 0.0_R8Ki
+   BD_InitInput%RootOri(:,:) = 0.0_R8Ki
+
+   BD_InitInput%GlbPos(1:3)      = BD_UsrData%GlbPos(1:3)
+   BD_InitInput%RootOri(1:3,1:3) = BD_UsrData%RootOri(1:3,1:3)
+   BD_InitInput%GlbRot(1:3,1:3)  = BD_UsrData%GlbRot(1:3,1:3)
+
+      ! Use the initial blade root orientation as the GlbRot reference orientation for all calculations?
+   IF ( DvrData%GlbRotBladeT0 ) THEN
+      ! Set the GlbRot matrix
+      BD_InitInput%GlbRot = BD_InitInput%RootOri
+      CALL eye( DvrData%RootRelInit, ErrStat2, ErrMsg2 )
+         CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+   ELSE
+      ! Initialize the GlbRot matrix as the identity.  Relative rotation for root to GlbRot
+      DvrData%RootRelInit = BD_InitInput%RootOri
+      CALL eye( BD_InitInput%GlbRot, ErrStat2, ErrMsg2 )
+         CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+   END IF
+
+   !---------------------- INITIAL VELOCITY PARAMETER --------------------------------
+   BD_InitInput%RootVel(4:6) = BD_UsrData%omega
+   BD_InitInput%RootVel(1:3) = cross_product(BD_InitInput%RootVel(4:6),BD_InitInput%GlbPos(:))
+
+   ! Path to the structure input file
+   BD_InitInput%InputFile = BD_UsrData%InputFile
+
+   ! initialize the BD_InitInput values not in the driver input file
+   BD_InitInput%RootName     = TRIM(BD_Initinput%InputFile)
+   BD_InitInput%RootDisp     = matmul(transpose(BD_InitInput%RootOri),BD_InitInput%GlbPos) - BD_InitInput%GlbPos
+   BD_InitInput%RootVel(1:3) = matmul(BD_InitInput%RootOri, Cross_Product( BD_InitInput%RootVel(4:6), BD_InitInput%GlbPos ))  ! set translational velocities based on rotation and GlbPos.
+   BD_InitInput%DynamicSolve = BD_UsrData%DynamicSolve      ! QuasiStatic options handled within the BD code.
+       
+END SUBROUTINE BD_initFromUsrData
+
+
+SUBROUTINE BDuser_InitRotationCenterMesh(BD_UsrData, InitInputData, RootMotionMesh, ErrStat, ErrMsg)
+   TYPE(BD_InitInputType),      INTENT(IN   ) :: InitInputData
+   TYPE(BD_UsrDataType),        INTENT(INOUT) :: BD_UsrData
+   TYPE(MeshType),              INTENT(INOUT) :: RootMotionMesh
+   INTEGER(IntKi),              INTENT(  OUT) :: ErrStat           ! Error status of the operation
+   CHARACTER(*),                INTENT(  OUT) :: ErrMsg            ! Error message if ErrStat /= ErrID_None
+
+   integer(intKi)                             :: ErrStat2          ! temporary Error status
+   character(ErrMsgLen)                       :: ErrMsg2           ! temporary Error message
+   character(*), parameter                    :: RoutineName = 'BDuser_InitRotationCenterMesh'
+   
+   real(r8Ki)                                 :: orientation(3,3)
+   real(ReKi)                                 :: position(3)
+   real(R8Ki)                                 :: z_hat(3)  ! unit-magnitude rotational velocity vector
+   real(R8Ki)                                 :: Z_unit(3) ! unit vector in the Z direction
+   real(R8Ki)                                 :: vec(3)    ! temporary vector
+   
+   ErrStat = ErrID_None
+   ErrMsg = ''
+   
+   
+   position = 0.0_ReKi  ! center of rotation
+
+   BD_UsrData%w = TwoNorm( InitInputData%RootVel(4:6) )
+   
+   if (EqualRealNos(BD_UsrData%w,0.0_R8Ki)) then
+      BD_UsrData%w = 0.0_R8Ki
+         ! the beam is not rotating, so pick an orientation
+      call eye(orientation, ErrStat2, ErrMsg2)
+   else
+      z_hat = InitInputData%RootVel(4:6) / BD_UsrData%w
+      
+      if ( EqualRealNos( z_hat(3), 1.0_R8Ki ) ) then
+         call eye(orientation, ErrStat2, ErrMsg2)
+      elseif ( EqualRealNos( z_hat(3), -1.0_R8Ki ) ) then
+         orientation = 0.0_ReKi
+         orientation(1,1) = -1.0_R8Ki
+         orientation(2,2) =  1.0_R8Ki
+         orientation(3,3) = -1.0_R8Ki
+      else
+         
+         Z_unit = (/0.0_R8Ki, 0.0_R8Ki, 1.0_R8Ki/)
+         
+         vec = Z_unit - z_hat*z_hat(3) ! vec = matmul( eye(3) - outerproduct(z_hat,z_hat), (/ 0,0,1/) )
+         vec = vec / TwoNorm(vec)      ! we've already checked that this is not zero
+         orientation(1,:) = vec
+
+         vec = cross_product(z_hat,Z_unit)
+         vec = vec / TwoNorm(vec)
+         orientation(2,:) = vec
+                  
+         orientation(3,:) = z_hat
+         
+      end if
+      
+   end if
+   
+   !.......................
+   ! Mesh for center of rotation
+   !.......................
+   CALL MeshCreate( BlankMesh        = BD_UsrData%RotationCenter &
+                   ,IOS              = COMPONENT_OUTPUT          &
+                   ,NNodes           = 1                         &
+                   ,TranslationDisp  = .TRUE.                    &
+                   ,Orientation      = .TRUE.                    &
+                   ,TranslationVel   = .TRUE.                    &
+                   ,RotationVel      = .TRUE.                    &
+                   ,TranslationAcc   = .TRUE.                    &
+                   ,RotationAcc      = .TRUE.                    &
+                   ,ErrStat          = ErrStat2                  &
+                   ,ErrMess          = ErrMsg2                    )
+      CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+      IF (ErrStat >= AbortErrLev) return   
+      
+       ! set the reference position and orientation.
+   CALL MeshPositionNode ( BD_UsrData%RotationCenter, 1, position, ErrStat2, ErrMsg2, orientation )
+      CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+
+   CALL MeshConstructElement( BD_UsrData%RotationCenter, ELEMENT_POINT, ErrStat2, ErrMsg2, 1 )
+      CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+
+   CALL MeshCommit (BD_UsrData%RotationCenter, ErrStat2, ErrMsg2 )
+      CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+      IF (ErrStat >= AbortErrLev) return   
+   
+      
+   ! note that the following fields do not change during the simulation;  orientation will change in BD_InputSolve.
+   BD_UsrData%RotationCenter%TranslationDisp  = 0.0_ReKi
+   BD_UsrData%RotationCenter%TranslationVel   = 0.0_ReKi
+   BD_UsrData%RotationCenter%RotationVel(:,1) = InitInputData%RootVel(4:6)
+   BD_UsrData%RotationCenter%TranslationAcc   = 0.0_ReKi
+   BD_UsrData%RotationCenter%RotationAcc      = 0.0_ReKi
+   
+   
+   !.......................
+   ! initialize the mapping between the BD center of rotation and BD root motion input mesh:
+   !.......................
+      
+   CALL MeshMapCreate( BD_UsrData%RotationCenter, RootMotionMesh, BD_UsrData%Map_RotationCenter_to_RootMotion, ErrStat2, ErrMsg2 )
+      CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+      
+   BD_UsrData%RotationCenter%remapFlag = .false.
+   RootMotionMesh%remapFlag = .false.
+   
+END SUBROUTINE BDuser_InitRotationCenterMesh
+
+SUBROUTINE BDUsr_InputSolve(ErrStat, ErrMsg)
+ 
+   INTEGER(IntKi),              INTENT(  OUT) :: ErrStat          ! Error status of the operation
+   CHARACTER(*),                INTENT(  OUT) :: ErrMsg           ! Error message if ErrStat /= ErrID_None
+                                         
+   ! local variables                     
+   INTEGER(IntKi)                             :: i                ! do-loop counter
+   REAL(R8Ki)                                 :: Orientation(3,3)
+   REAL(R8Ki)                                 :: wt               ! time from start start of simulation multiplied by magnitude of rotational velocity
+   REAL(R8Ki)                                 :: swt, cwt         ! sine and cosine of w*t
+   
+   integer(intKi)                             :: ErrStat2         ! temporary Error status
+   character(ErrMsgLen)                       :: ErrMsg2          ! temporary Error message
+   character(*), parameter                    :: RoutineName = 'BDUsr_InputSolve'
+   
+   ErrStat = ErrID_None
+   ErrMsg  = ''
+
+   !.............................
+   ! Set up u%RootMotion: 
+   !.............................
+   
+   ! Compute the orientation at the center of rotation 
+   wt = BD_UsrData%w * (BD_UsrData%t)
+   swt = sin( wt )
+   cwt = cos( wt )
+   Orientation(1,1) = cwt
+   Orientation(2,1) =-swt
+   Orientation(3,1) =   0.0_R8Ki
+   
+   Orientation(1,2) = swt
+   Orientation(2,2) = cwt
+   Orientation(3,2) = 0.0_R8Ki
+   
+   Orientation(1,3) = 0.0_R8Ki
+   Orientation(2,3) = 0.0_R8Ki
+   Orientation(3,3) = 1.0_R8Ki
+      
+   BD_UsrData%RotationCenter%Orientation(:,:,1) = matmul(Orientation, matmul(BD_UsrData%RotationCenter%RefOrientation(:,:,1),BD_UsrData%RootRelInit))
+
+   CALL Transfer_Point_to_Point( BD_UsrData%RotationCenter, BD_Input(1)%RootMotion, BD_UsrData%Map_RotationCenter_to_RootMotion, ErrStat2, ErrMsg2)  
+      CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )         
+      
+   !.............................
+   ! set up the point load input:
+   ! @VA: if we want to apply these at different positions, we should call Transfer_MultipointLoads(); 
+   ! putting the calculation here so we can have changing loads at some point...
+   !.............................
+   ! CALL Transfer_Point_to_Point( DvrData%mplLoads, u%PointLoad, DvrData%Map_mplLoads_to_PointLoad, ErrStat2, ErrMsg2, DvrData%mplMotion, DvrData%y_BldMotion_at_u_point)  
+   !    CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+   ! 
+   ! u%PointLoad%Force(1:3,u%PointLoad%NNodes)  = u%PointLoad%Force(1:3,u%PointLoad%NNodes)  + DvrData%TipLoad(1:3)
+   ! u%PointLoad%Moment(1:3,u%PointLoad%NNodes) = u%PointLoad%Moment(1:3,u%PointLoad%NNodes) + DvrData%TipLoad(4:6)
+   
+   !.............................
+   ! LINE2 mesh: DistrLoad
+   !.............................
+   ! DO i=1,u%DistrLoad%NNodes
+   !    u%DistrLoad%Force(:,i) =  DvrData%DistrLoad(1:3)
+   !    u%DistrLoad%Moment(:,i)=  DvrData%DistrLoad(4:6)
+   ! ENDDO
+
+END SUBROUTINE BDUsr_InputSolve
+
+END MODULE BeamDyn_C
