@@ -44,7 +44,7 @@ OPT    =
 #FFLAGS = -O2 -m$(BITS) -fbacktrace -ffree-line-length-none -x f95-cpp-input  -fcheck=bounds -C
 #FFLAGS = -O3 -fbacktrace -ffree-line-length-none -x f95-cpp-input
 #LDFLAGS = -O2 -m$(BITS)  -fbacktrace $(BLAS_LAPACK_LIBS)
-FFLAGS  = $(OPT) -O2 -m$(BITS) -fcheck=all -fdefault-real-8 -fbacktrace -ffree-line-length-none -x f95-cpp-input -Wsurprising -DDOUBLE_PRECISION -fpic
+FFLAGS  = $(OPT) -O2 -m$(BITS)  -fdefault-real-8 -fbacktrace -ffree-line-length-none -x f95-cpp-input -Wsurprising -DDOUBLE_PRECISION -fpic #-fcheck=all
 LDFLAGS = $(OPT) -O2 -m$(BITS) -fbacktrace
 
 
@@ -106,10 +106,10 @@ BD_SOURCES   =           \
 	BeamDyn.f90           \
 	BeamDyn_IO.f90        \
 	BeamDyn_Subs.f90      \
-	Driver_Beam_Subs.f90  \
-	Beam_C.f90            \
+	BeamDyn_Usr.f90       \
 	BeamDyn_Program.f90   \
 	BeamDyn_Types.f90     \
+	CInterface.f90
 
 vpath %.f90 $(LIB_DIR) $(NETLIB_DIR) $(VERSION_DIR) $(BD_DIR)
 vpath %.mod $(INTER_DIR)
@@ -178,7 +178,7 @@ $(DEST_DIR)/$(OUTPUT_NAME)$(EXE_EXT): $(ALL_OBJS) | $(INTER_DIR)
 	# Cleanup afterwards.
 
 lib: $(ALL_OBJS) | $(INTER_DIR)
-	$(FC) $(LDFLAGS) -I $(INTER_DIR) -shared -o $(DEST_DIR)/$(OUTPUT_NAME)$(EXE_EXT) \
+	$(FC) $(LDFLAGS) -I $(INTER_DIR) -shared -o $(DEST_DIR)/$(OUTPUT_NAME)_lib.so \
 	$(foreach src, $(ALL_OBJS), $(addprefix $(INTER_DIR)/,$(src))) $(LAPACK_LINK)
 
 clean:
