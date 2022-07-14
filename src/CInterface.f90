@@ -14,13 +14,15 @@ MODULE CInterface
     SUBROUTINE initBeamDyn(nBeam_loc,inputFile,                 &
                            dt, nt, t,                           &
                            DynamicSolve,                        &
-                           omega, domega) BIND(C,NAME="initBeamDyn")
+                           omega, domega,gravity,                &
+                           nxLoads, nxDisp) BIND(C,NAME="f_initBeamDyn")
 
         INTEGER(KIND=C_INT), INTENT(IN), VALUE           :: nBeam_loc
         CHARACTER(C_CHAR),   INTENT(IN)                  :: inputFile(*)
         REAL(KIND=C_DOUBLE), INTENT(IN), OPTIONAL        :: dt, t
         INTEGER(KIND=C_INT), INTENT(IN), OPTIONAL        :: nt, DynamicSolve
-        REAL(KIND=C_DOUBLE), INTENT(IN), OPTIONAL        :: omega(3), domega(3)
+        REAL(KIND=C_DOUBLE), INTENT(IN), OPTIONAL        :: omega(3), domega(3), gravity(3)
+        INTEGER(KIND=C_INT), INTENT(  OUT)               :: nxLoads,nxDisp        ! Returns the number of nodes for loads and displacement
 
 
         INTEGER(IntKi) :: i,j
@@ -45,11 +47,13 @@ MODULE CInterface
                 BD_UsrData(i)%RootRelInit(j,j) = 1.0 !
             END DO 
 
-            IF(PRESENT(omega))  THEN; BD_UsrData(i)%omega(:)  =  omega(:);  ELSE; BD_UsrData(i)%omega   = 0.0; ENDIF    ! Angular velocity vector
-            IF(PRESENT(domega)) THEN; BD_UsrData(i)%omega(:)  = domega(:);  ELSE; BD_UsrData(i)%domega  = 0.0; ENDIF    ! Angular acceleration vector
+            IF(PRESENT(omega))   THEN; BD_UsrData(i)%omega(:)    =  omega(:);   ELSE; BD_UsrData(i)%omega    = 0.0; ENDIF    ! Angular velocity vector
+            IF(PRESENT(domega))  THEN; BD_UsrData(i)%omega(:)    = domega(:);   ELSE; BD_UsrData(i)%domega   = 0.0; ENDIF    ! Angular acceleration vector
+            IF(PRESENT(gravity)) THEN; BD_UsrData(i)%grav(:)     = gravity(:);  ELSE; BD_UsrData(i)%grav     = 0.0; ENDIF    ! Angular acceleration vector
 
             ! copy string input file from C to Fortran
             j=1
+            BD_UsrData(i)%InputFile=" "
             DO WHILE (inputFile(j) /= C_NULL_CHAR .AND. j<LEN(BD_UsrData(i)%InputFile))
                 BD_UsrData(i)%InputFile(j:j) = inputFile(j)
                 j = j + 1
@@ -61,12 +65,35 @@ MODULE CInterface
         ENDDO
 
         nBeam = nBeam_loc
+
+        nxLoads = BD_UsrData(1)%BD_Input(1)%DistrLoad%Nnodes
+        nxDisp  = BD_UsrData(1)%BD_Output%BldMotion%Nnodes
  
     END SUBROUTINE initBeamDyn
 
+    SUBROUTINE getPositions(xLoads, xDisp) BIND(C,NAME="f_getPositions")
+        TYPE(c_ptr), INTENT(OUT) :: xLoads,xDisp
 
+        REAL(R8Ki), POINTER :: f_xLoads(:,:), f_xDisp(:,:)
+        INTEGER(IntKi) :: i
 
-    SUBROUTINE freeBeamDyn() BIND(C,NAME="freeBeamDyn")
+        CALL c_f_pointer(xLoads,f_xLoads,[BD_UsrData(1)%BD_Input(1)%DistrLoad%Nnodes,3])
+        CALL c_f_pointer(xDisp, f_xDisp, [BD_UsrData(1)%BD_Output%BldMotion%Nnodes,3])
+
+        DO i=1,BD_UsrData(1)%BD_Input(1)%DistrLoad%Nnodes
+            f_xLoads(i,1:3) = BD_UsrData(1)%BD_Input(1)%DistrLoad%Position(1:3,i)
+        END DO
+
+        DO i=1,BD_UsrData(1)%BD_Output%BldMotion%Nnodes
+            f_xDisp(i,1:3) = BD_UsrData(1)%BD_Output%BldMotion%Position(1:3,i)
+        END DO
+
+        xLoads = C_LOC(f_xLoads(1,1))
+        xDisp  = C_LOC(f_xDisp(1,1))
+
+    END SUBROUTINE getPositions
+
+    SUBROUTINE freeBeamDyn() BIND(C,NAME="f_freeBeamDyn")
 
         INTEGER(IntKi) :: i
         DO i=1,nBeam
@@ -79,19 +106,19 @@ MODULE CInterface
     END SUBROUTINE freeBeamDyn
     
 
-    SUBROUTINE setLoads(loads,idxBeam) BIND(C,NAME="setLoads")
+    SUBROUTINE setLoads(loads,idxBeam) BIND(C,NAME="f_setLoads")
         IMPLICIT NONE
         TYPE(C_PTR),INTENT(IN)      :: loads       ! coordinates for key points
         INTEGER(C_INT),INTENT(IN),VALUE:: idxBeam
 
         REAL(R8Ki), POINTER          :: f_loads(:,:)
-        CALL c_f_pointer(loads,f_loads, [BD_UsrData%nx,6]);
+        CALL c_f_pointer(loads,f_loads, [BD_UsrData%nxL,6]);
         CALL BeamDyn_C_setLoads(BD_UsrData(idxBeam),f_loads)
 
     END SUBROUTINE setLoads
 
 
-    SUBROUTINE solve(idxBeam) BIND(C,NAME="solve")
+    SUBROUTINE solve(idxBeam) BIND(C,NAME="f_solve")
 
         INTEGER(C_INT),INTENT(IN),VALUE:: idxBeam
 
@@ -100,11 +127,11 @@ MODULE CInterface
         CALL CPU_TIME(t_start)
         CALL BeamDyn_C_Solve(BD_UsrData(idxBeam))
         CALL CPU_TIME(t_end)
-        print '("Structural solver is done: CPU_Time = ",f6.3," [s]")',t_end-t_start
+        !print '("Structural solver is done: CPU_Time = ",f6.3," [s]")',t_end-t_start
 
     END SUBROUTINE solve
 
-    SUBROUTINE getDisplacement(x,u,du,idxBeam) BIND(C,NAME="getDisplacement")
+    SUBROUTINE getDisplacement(x,u,du,idxBeam) BIND(C,NAME="f_getDisplacement")
 
         TYPE(C_PTR),INTENT(OUT)      :: x, u, du
         INTEGER(C_INT),INTENT(IN),VALUE :: idxBeam
@@ -115,11 +142,14 @@ MODULE CInterface
 
         INTEGER(IntKi) :: i,j
 
-        CALL c_f_pointer(x ,f_x ,[BD_UsrData(idxBeam)%nx,3])
-        CALL c_f_pointer(u ,f_u ,[BD_UsrData(idxBeam)%nx,6])
-        CALL c_f_pointer(du,f_du,[BD_UsrData(idxBeam)%nx,6])
+        CALL c_f_pointer(x ,f_x ,[BD_UsrData(idxBeam)%nxD,3])
+        CALL c_f_pointer(u ,f_u ,[BD_UsrData(idxBeam)%nxD,6])
+        CALL c_f_pointer(du,f_du,[BD_UsrData(idxBeam)%nxD,6])
 
         CALL BeamDyn_C_getDisp(BD_UsrData(1),f_u,f_du)
+
+        !write(*,*) BD_UsrData(idxBeam)%nxD
+        !write(*,*) BD_UsrData(idxBeam)%BD_Output%BldMotion%NNodes ! Should be equal!!
 
         DO i=1,BD_UsrData(idxBeam)%BD_Output%BldMotion%NNodes
             DO j=1,3
@@ -135,7 +165,7 @@ MODULE CInterface
     END SUBROUTINE getDisplacement
 
     ! This function should be used before every "solve" to set the orientation and displacement of the root
-    SUBROUTINE setBC(idxBeam)  BIND(C,NAME="setBC")
+    SUBROUTINE setBC(idxBeam)  BIND(C,NAME="f_setBC")
 
         INTEGER(C_INT),INTENT(IN),VALUE :: idxBeam
 

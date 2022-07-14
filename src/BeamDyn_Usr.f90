@@ -34,8 +34,8 @@ MODULE BeamDyn_Usr
       LOGICAL        :: DynamicSolve  ! flag for dynamic or static solve (static:false)
       LOGICAL        :: GlbRotBladeT0 ! Initial blade root orientation is also the GlbRot reference frame
 
-      INTEGER(IntKi)                          :: nx;        ! Number of nodes
-      REAL(ReKi),DIMENSION(:,:), ALLOCATABLE  :: x;         ! Nodes coordinates
+      INTEGER(IntKi)                          :: nxD,nxL;        ! Number of nodes for Displacement and Loads
+      !REAL(ReKi),DIMENSION(:,:), ALLOCATABLE  :: x;         ! Nodes coordinates
 
       REAL(DbKi)     :: t             ! time
       REAL(DbKi)     :: dt            ! time increment
@@ -52,8 +52,8 @@ MODULE BeamDyn_Usr
       REAL(DbKi),DIMENSION(:,:), ALLOCATABLE         :: loads    ! Forces and moment at the node positions; Size(NNodes,6)
       REAL(DbKi)                                     :: grav(3)  ! Gravity vector
 
-      REAL(DbKi),DIMENSION(:,:), ALLOCATABLE         :: u        ! Displacement variables (u,v,w,phi,th1,th2); Size(NNodes,6)
-      REAL(DbKi),DIMENSION(:,:), ALLOCATABLE         :: du       ! Velocity variables d(u,v,w,phi,th1,th2)/dt; Size(NNodes,6)
+      !REAL(DbKi),DIMENSION(:,:), ALLOCATABLE         :: u        ! Displacement variables (u,v,w,phi,th1,th2); Size(NNodes,6)
+      !REAL(DbKi),DIMENSION(:,:), ALLOCATABLE         :: du       ! Velocity variables d(u,v,w,phi,th1,th2)/dt; Size(NNodes,6)
 
       CHARACTER(1024)  :: InputFile      !< Name of the input file; remove if there is no file [-]
 
@@ -466,27 +466,15 @@ MODULE BeamDyn_Usr
 
       INTEGER(IntKi)                   :: i,j
 
-      usr%nx = usr%BD_Input(1)%DistrLoad%NNodes
-
-      ALLOCATE(usr%x(usr%nx,3))
-      ALLOCATE(usr%loads(usr%nx,6))
-      ALLOCATE(usr%u(usr%nx,6))
-      ALLOCATE(usr%du(usr%nx,6))
-
-      DO i=1,usr%nx
-         usr%x(i,1:3) = usr%BD_Input(1)%DistrLoad%Position(1:3,i)
-      ENDDO
-
-
+      usr%nxD = usr%BD_Output%BldMotion%NNodes
+      usr%nxL = usr%BD_Input(1)%DistrLoad%Nnodes
 
    END SUBROUTINE initUsrData
 
    SUBROUTINE freeUsrData(usr)
       TYPE(BD_UsrDataType) :: usr
-      IF (ALLOCATED(usr%x))       DEALLOCATE(usr%x)
-      IF (ALLOCATED(usr%loads))   DEALLOCATE(usr%loads)
-      IF (ALLOCATED(usr%u))       DEALLOCATE(usr%u)
-      IF (ALLOCATED(usr%du))      DEALLOCATE(usr%du)
+      
+      CALL MeshDestroy(usr%RotationCenter, ErrStat, ErrMsg);
    END SUBROUTINE freeUsrData
 
 
@@ -495,8 +483,7 @@ MODULE BeamDyn_Usr
       REAL(R8Ki),INTENT(IN) :: loads(:,:)
       INTEGER(IntKi)                   :: i,j
 
-      DO i=1,usr%nx
-         usr%loads(i,:) =  loads(i,:)
+      DO i=1,usr%nxL
          usr%BD_Input(1)%DistrLoad%Force(:,i) =  loads(i,1:3)
          usr%BD_Input(1)%DistrLoad%Moment(:,i)=  loads(i,4:6)
       ENDDO
@@ -510,12 +497,35 @@ MODULE BeamDyn_Usr
       REAL(R8Ki),          INTENT(OUT) :: du(:,:)
 
       INTEGER(IntKi)                   :: i,j
-      REAL(R8Ki) :: angles(3)
+      REAL(R8Ki)                       :: RootRelOrient(3,3),temp_vec(3),temp_vec2(3),d(3),d_ref(3),temp33(3,3),temp33_2(3,3)
+
+      INTEGER(IntKi)               :: ErrStat2                     ! Temporary Error status
+      CHARACTER(ErrMsgLen)         :: ErrMsg2                      ! Temporary Error message
+      character(*), parameter      :: RoutineName = 'BeamDyn_C_GetDisp'
 
       DO i=1,usr%BD_Output%BldMotion%Nnodes
-         CALL BD_CrvExtractCrv(usr%BD_Output%BldMotion%Orientation(1:3,1:3,i),angles,ErrStat,ErrMsg)
-         u(i,1:3)  = usr%BD_Output%BldMotion%TranslationDisp(1:3,i);
-         u(i,4:6)  = angles;
+         ! Translation displacement
+         RootRelOrient = matmul( transpose(usr%BD_Input(1)%RootMotion%Orientation(:,:,1)), usr%BD_Input(1)%RootMotion%RefOrientation(:,:,1))
+         d     = usr%BD_Output%BldMotion%TranslationDisp(:, i) - usr%BD_Input(1)%RootMotion%TranslationDisp(:,1)
+         d_ref = usr%BD_Output%BldMotion%Position(       :, i) - usr%BD_Input(1)%RootMotion%Position(       :,1)
+         temp_vec2 = d + d_ref - matmul( RootRelOrient, d_ref ) ! tip displacement
+         u(i,1:3) = MATMUL(usr%BD_Input(1)%RootMotion%Orientation(:,:,1),temp_vec2)
+
+         ! Tip angular/rotational deflection Wiener-Milenkovic parameter (relative to the undeflected orientation) expressed in r
+         CALL LAPACK_DGEMM('N', 'T', 1.0_BDKi, usr%BD_Output%BldMotion%RefOrientation(:,:,i), RootRelOrient,   0.0_BDKi, temp33_2, ErrStat2, ErrMsg2 )
+         CALL LAPACK_DGEMM('T', 'N', 1.0_BDKi, usr%BD_Output%BldMotion%Orientation(   :,:,i), temp33_2,        0.0_BDKi, temp33,   ErrStat2, ErrMsg2 )
+         CALL BD_CrvExtractCrv(temp33,temp_vec2, ErrStat2, ErrMsg2) ! temp_vec2 = the Wiener-Milenkovic parameters of the tip angular/rotational defelctions
+            CALL SetErrStat(ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName)
+            if (ErrStat >= AbortErrLev) return
+         temp_vec = MATMUL(usr%BD_Input(1)%RootMotion%Orientation(:,:,1),temp_vec2) ! translate these parameters to the correct system for output
+
+         u(i,4:6)  = temp_vec;
+
+         ! Velocities are expressed in the global/local frame
+         ! Local frame vector
+         du(i,1:3) = MATMUL(usr%BD_Output%BldMotion%Orientation(:,:,i), usr%BD_Output%BldMotion%TranslationVel(:,i))
+         du(i,4:6) = MATMUL(usr%BD_Output%BldMotion%Orientation(:,:,i), usr%BD_Output%BldMotion%RotationVel(:,i))
+         ! 
          du(i,1:3) = usr%BD_Output%BldMotion%TranslationVel(1:3,i);
          du(i,4:6) = usr%BD_Output%BldMotion%RotationVel(1:3,i);
       ENDDO

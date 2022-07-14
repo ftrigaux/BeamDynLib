@@ -6,15 +6,11 @@ PROGRAM BeamDyn_Program
 
    INTEGER(IntKi) :: i,j
    REAL :: t_start, t_end
-   REAL(R8Ki) :: loads(49,6),u(49,6),du(49,6)
+   REAL(R8Ki),ALLOCATABLE :: loads(:,:),u(:,:),du(:,:)
    
    TYPE(BD_UsrDataType),ALLOCATABLE :: BD_UsrData(:)
 
    ALLOCATE(BD_UsrData(1))
-
-   loads(:,:) = 0.0
-   loads(:,1) = 5e3
-   loads(:,2) = 1e4
 
    BD_UsrData(1)%dt = 4e-3
    BD_UsrData(1)%nt = 10
@@ -39,7 +35,16 @@ PROGRAM BeamDyn_Program
    BD_UsrData(1)%InputFile = "bd_primary_nrel_5mw_dynamic.inp"
 
    CALL BeamDyn_C_Init(BD_UsrData(1))
+
+   ! Loads
+   ALLOCATE(loads(BD_UsrData(1)%nxL,6))
+   loads(:,:) = 0.0
+   loads(:,1) = 5e3
+   loads(:,2) = 1e4
    CALL BeamDyn_C_setLoads(BD_UsrData(1),loads)
+
+   write(*,*) BD_UsrData(1)%BD_Parameter%nqp
+   write(*,*) "node per elem: ", BD_UsrData(1)%BD_Parameter%nodes_per_elem
    
    DO i=1,25
       CALL CPU_TIME(t_start)
@@ -49,11 +54,17 @@ PROGRAM BeamDyn_Program
       print '("Time = ",f6.3," seconds.")',t_end-t_start
    END DO
    
+   ! Get displacement
+   ALLOCATE(u(BD_UsrData(1)%nxD,6))
+   ALLOCATE(du(BD_UsrData(1)%nxD,6))
    CALL BeamDyn_C_getDisp(BD_UsrData(1),u,du)
 
    CALL BeamDyn_C_End(BD_UsrData(1))
 
    DEALLOCATE(BD_UsrData)
+   DEALLOCATE(loads)
+   DEALLOCATE(u)
+   DEALLOCATE(du)
 
    contains
    SUBROUTINE writeOutputToFile(no)

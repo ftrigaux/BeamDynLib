@@ -44,8 +44,8 @@ OPT    =
 #FFLAGS = -O2 -m$(BITS) -fbacktrace -ffree-line-length-none -x f95-cpp-input  -fcheck=bounds -C
 #FFLAGS = -O3 -fbacktrace -ffree-line-length-none -x f95-cpp-input
 #LDFLAGS = -O2 -m$(BITS)  -fbacktrace $(BLAS_LAPACK_LIBS)
-FFLAGS  = $(OPT) -O2 -m$(BITS)  -fdefault-real-8 -fbacktrace -ffree-line-length-none -x f95-cpp-input -Wsurprising -DDOUBLE_PRECISION -fpic #-fcheck=all
-LDFLAGS = $(OPT) -O2 -m$(BITS) -fbacktrace
+FFLAGS  = $(OPT) -g -m$(BITS)  -fdefault-real-8 -fbacktrace -ffree-line-length-none -x f95-cpp-input -Wsurprising -DDOUBLE_PRECISION -fpic #-fcheck=all
+LDFLAGS = $(OPT) -g -m$(BITS) -fbacktrace
 
 
 	# Precision.
@@ -107,9 +107,9 @@ BD_SOURCES   =           \
 	BeamDyn_IO.f90        \
 	BeamDyn_Subs.f90      \
 	BeamDyn_Usr.f90       \
-	BeamDyn_Program.f90   \
 	BeamDyn_Types.f90     \
-	CInterface.f90
+	CInterface.f90        \
+	#BeamDyn_Program.f90
 
 vpath %.f90 $(LIB_DIR) $(NETLIB_DIR) $(VERSION_DIR) $(BD_DIR)
 vpath %.mod $(INTER_DIR)
@@ -171,17 +171,35 @@ $(BD_DIR)/BeamDyn_Types.f90: $(BD_DIR)/Registry_BeamDyn.txt
 
 	# For compiling the driver/glue code.
 
-$(DEST_DIR)/$(OUTPUT_NAME)$(EXE_EXT): $(ALL_OBJS) | $(INTER_DIR)
+OBJC  = CBeamDyn.o
+OBJDIR=obj
+DIRC=src
+OBJC := $(OBJC:%.o=$(OBJDIR)/%.o)
+CC=gcc
+OPTIFLAG=-O3
+CFLAGS=$(OPTIFLAG) -fPIC
+$(OBJC): $(OBJDIR)/%.o: $(DIRC)/%.c
+	$(CC) $(CFLAGS) -c  $< -o $@ 
+INSTALL_DIR=/usr/local
+
+$(DEST_DIR)/$(OUTPUT_NAME)$(EXE_EXT): $(ALL_OBJS) $(OBJC) | $(INTER_DIR)
 	$(FC) $(LDFLAGS) -I $(INTER_DIR) -o $(DEST_DIR)/$(OUTPUT_NAME)$(EXE_EXT) \
-	$(foreach src, $(ALL_OBJS), $(addprefix $(INTER_DIR)/,$(src))) $(LAPACK_LINK)
+	$(foreach src, $(ALL_OBJS), $(addprefix $(INTER_DIR)/,$(src))) obj/CBeamDyn.o $(LAPACK_LINK)
 
 	# Cleanup afterwards.
 
-lib: $(ALL_OBJS) | $(INTER_DIR)
-	$(FC) $(LDFLAGS) -I $(INTER_DIR) -shared -o $(DEST_DIR)/$(OUTPUT_NAME)_lib.so \
-	$(foreach src, $(ALL_OBJS), $(addprefix $(INTER_DIR)/,$(src))) $(LAPACK_LINK)
+lib: $(ALL_OBJS) $(OBJC) | $(INTER_DIR)
+	$(FC) $(LDFLAGS) -I $(INTER_DIR) -shared -o $(DEST_DIR)/lib$(OUTPUT_NAME).so \
+	$(foreach src, $(ALL_OBJS), $(addprefix $(INTER_DIR)/,$(src))) obj/CBeamDyn.o $(LAPACK_LINK)
+
+install:
+	ln -sf $(DEST_DIR)/lib$(OUTPUT_NAME).so $(INSTALL_DIR)/lib/
+	ln -sf $(DIRC)/CBeamDyn.h $(INSTALL_DIR)/include/
 
 clean:
-	$(DEL_CMD) $(INTER_DIR)$(PATH_SEP)*.mod $(INTER_DIR)$(PATH_SEP)*.obj $(OUTPUT_NAME)$(EXE_EXT) \
-	*.dat *.out
-
+	$(DEL_CMD) $(INTER_DIR)$(PATH_SEP)*.mod $(INTER_DIR)$(PATH_SEP)*.obj $(INTER_DIR)$(PATH_SEP)*.o $(OUTPUT_NAME)$(EXE_EXT) \
+	*.dat *.out $(DEST_DIR)/lib$(OUTPUT_NAME).so
+ÌNSTALL_DIR=/usr/local
+install:
+	ln -sf $(THISDIR)/lib/lib*.so $(INSTALL_DIR)/lib
+	ln -sf $(THISDIR)/include/CBeamDyn.h $(INSTALL_DIR)/include

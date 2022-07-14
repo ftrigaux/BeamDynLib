@@ -1,0 +1,1 @@
+valgrind --keep-debuginfo=yes --leak-check=full --track-origins=yes --log-file="valgrindTest.log" ./BeamDyn

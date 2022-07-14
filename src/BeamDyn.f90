@@ -124,6 +124,7 @@ SUBROUTINE BD_Init( InitInp, u, p, x, xd, z, OtherState, y, MiscVar, Interval, I
 
 
       ! this routine sets *some* of the parameters (basically the "easy" ones)
+      p%UsePitchAct = InputFileData%UsePitchAct ! MUST be defined here because it is used in the list of output
    call SetParameters(InitInp, InputFileData, p, ErrStat2, ErrMsg2)
       CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
       if (ErrStat >= AbortErrLev) then

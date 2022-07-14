@@ -2,5 +2,9 @@ obj
 **/.DS_Store
 run/nrel5mw_dynamic/disp*.dat
 BeamDyn
-BeamDyn_lib.so
+libBeamDyn.so
 run/nrel5mw_dynamic/bd_dvr*
+.vscode
+u.bin
+*.log
+__pycache__
