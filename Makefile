@@ -199,7 +199,3 @@ install:
 clean:
 	$(DEL_CMD) $(INTER_DIR)$(PATH_SEP)*.mod $(INTER_DIR)$(PATH_SEP)*.obj $(INTER_DIR)$(PATH_SEP)*.o $(OUTPUT_NAME)$(EXE_EXT) \
 	*.dat *.out $(DEST_DIR)/lib$(OUTPUT_NAME).so
-ÌNSTALL_DIR=/usr/local
-install:
-	ln -sf $(THISDIR)/lib/lib*.so $(INSTALL_DIR)/lib
-	ln -sf $(THISDIR)/include/CBeamDyn.h $(INSTALL_DIR)/include
