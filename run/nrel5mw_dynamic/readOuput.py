@@ -21,8 +21,8 @@ eps = 0.00477465
 
 dt = 4e-3
 nt = 250
-q1 = 1e2;
-q2 = 0.0;
+q1 = 5e3;
+q2 = 1e4;
 to = 0;
 
 
@@ -68,8 +68,10 @@ for i in range(3,6):
     
 #%%
 plt.figure(2)
-plt.plot(t2,vtip)
-plt.plot(t1,u[:,0+3,-1],'.-')
+plt.plot(t2,vtip,'-')
+plt.plot(t1,u[:,0+3,-1],'-')
+plt.plot(bd['Time'],bd['TipTDxr'],'-')
+
 plt.plot(t2,wtip,'--')
 plt.plot(t1,u[:,1+3,-1],'--')
-plt.plot(bd['Time'],bd['TipTDxr'],'.:')
+plt.plot(bd['Time'],bd['TipTDyr'],'--')
