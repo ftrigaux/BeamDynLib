@@ -62,6 +62,11 @@
     free(rav_##VEC) 
 #endif
 
+#define FILLZERO2(ptr,n1,n2) for (i_=0; i_<(n1); i_++){\
+                                    for (j_=0; j_<(n2); j_++){\
+                                        ptr[i_][j_] = 0.0;\
+                                    }}
+
 typedef struct
 {
     int     nBeam;                // Number of beams defined on this proc
@@ -84,9 +89,11 @@ typedef struct
 
 void BD_initBeamDyn(BD_Data *bd);
 
+void BD_refresh(BD_Data *bd);
+
 void BD_getPositions(BD_Data *bd);
 
-void BD_freeBeamDyn(BD_Data *bd);
+void BD_freeBeamDyn(BD_Data *bd, int deallocAll);
 
 void BD_setLoads(BD_Data *bd);
 
@@ -96,13 +103,20 @@ void BD_getDisplacement(BD_Data *bd);
 
 void BD_setBC(BD_Data *bd);
 
+void BD_writeSolToBin(BD_Data *bd, char* fileName);
+
+// Util functions
+void BD_getRotationMatrix(double Rot[3][3], double c[3]);
+
 
 // Fortran functions
-void f_initBeamDyn(int,char*,double*,int*,double*,int*,double[3],double[3],double[3],int*,int*);
+void f_initBeamDyn(int,char*,int,double*,int*,double*,int*,double[3],double[3],double[3],int*,int*);
+
+void f_refresh(int,double*,int*,double*,double[3],double[3]);
 
 void f_getPositions(double**,double**);
 
-void f_freeBeamDyn();
+void f_freeBeamDyn(int,int);
 
 void f_setLoads(double **, int);
 

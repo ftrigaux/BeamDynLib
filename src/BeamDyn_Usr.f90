@@ -481,11 +481,11 @@ MODULE BeamDyn_Usr
    SUBROUTINE BeamDyn_C_SetLoads(usr,loads)
       TYPE(BD_UsrDataType) :: usr
       REAL(R8Ki),INTENT(IN) :: loads(:,:)
-      INTEGER(IntKi)                   :: i,j
+      INTEGER(IntKi)                   :: k
 
-      DO i=1,usr%nxL
-         usr%BD_Input(1)%DistrLoad%Force(:,i) =  loads(i,1:3)
-         usr%BD_Input(1)%DistrLoad%Moment(:,i)=  loads(i,4:6)
+      DO k=1,usr%nxL
+         usr%BD_Input(1)%DistrLoad%Force(:,k) =  loads(k,1:3)
+         usr%BD_Input(1)%DistrLoad%Moment(:,k)=  loads(k,4:6)
       ENDDO
 
    END SUBROUTINE BeamDyn_C_SetLoads

@@ -19,17 +19,20 @@ def NP_F_2D(array):
 
 
 # Specify args and result type for each function
-bd.f_initBeamDyn.argtypes = [ct.c_int,ct.c_char_p,
+bd.f_initBeamDyn.argtypes = [ct.c_int,ct.c_char_p,ct.c_int,
                            ct.POINTER(ct.c_double),ct.POINTER(ct.c_int),ct.POINTER(ct.c_double),
                            ct.POINTER(ct.c_int),
                            ct.POINTER(ct.c_double),ct.POINTER(ct.c_double),ct.POINTER(ct.c_double),
                            ct.POINTER(ct.c_int), ct.POINTER(ct.c_int)]
 bd.f_initBeamDyn.restype  = None
 
+bd.f_refresh.argtypes = [ct.c_int, ct.POINTER(ct.c_double),ct.POINTER(ct.c_int),ct.POINTER(ct.c_double),ct.POINTER(ct.c_double),ct.POINTER(ct.c_double)]
+bd.f_refresh.restype  = None
+
 bd.f_getPositions.argtypes = [ND_POINTER_2,ND_POINTER_2]
 bd.f_getPositions.restype  = None
 
-bd.f_freeBeamDyn.argtypes = []
+bd.f_freeBeamDyn.argtypes = [ct.c_int,ct.c_int]
 bd.f_freeBeamDyn.restype  = None
 
 bd.f_setLoads.argtypes = [ND_POINTER_2, ct.c_int]
@@ -51,19 +54,20 @@ def opt(dt,ftype):
     else:
         return None
     
-def py_InitBeamDyn(nBeam,inputFile,dt=None,nt=None,t=None,DynamicSolve=None,omega=None,domega=None,gravity=None):
+def py_InitBeamDyn(nBeam,inputFile,idxBeam,dt=None,nt=None,t=None,DynamicSolve=None,omega=None,domega=None,gravity=None):
     nxLoads = ct.c_int(0); nxDisp = ct.c_int(0);
-    bd.f_initBeamDyn(1,inputFile.encode('utf-8'),opt(dt,ct.c_double),opt(nt,ct.c_int),opt(t,ct.c_double),opt(DynamicSolve,ct.c_int),opt(omega,ct.c_double),opt(domega,ct.c_double),opt(gravity,ct.c_double),ct.byref(nxLoads),ct.byref(nxDisp))
+    bd.f_initBeamDyn(nBeam,inputFile.encode('utf-8'),idxBeam,opt(dt,ct.c_double),opt(nt,ct.c_int),opt(t,ct.c_double),opt(DynamicSolve,ct.c_int),opt(omega,ct.c_double),opt(domega,ct.c_double),opt(gravity,ct.c_double),ct.byref(nxLoads),ct.byref(nxDisp))
     return nxLoads.value, nxDisp.value
 
 # Main function
 if __name__ == "__main__":
     # Initialize BeamDyn
     nBeam      = 1
+    idxBeam    = 1
     inputFile  = "/Users/ftrigaux/Documents/Beams/BeamDynLib/run/nrel5mw_dynamic/bd_primary_nrel_5mw_dynamic.inp"
     nt_loc = 1;
     dt_loc = 1e-2;
-    nxL, nxD = py_InitBeamDyn(1,inputFile,nt=nt_loc,dt=dt_loc,omega=-np.array([0.0,0,0],order='F'),DynamicSolve=1)
+    nxL, nxD = py_InitBeamDyn(nBeam,inputFile,idxBeam,nt=nt_loc,dt=dt_loc,omega=-np.array([0.0,0,0],order='F'),DynamicSolve=1)
     
     # Get the position of the distributed loads
     xLoads = np.zeros((nxL,3),order='F')
@@ -104,7 +108,7 @@ if __name__ == "__main__":
         vtip_test[i+1] = du[-1,0]*dt_loc + vtip_test[i] 
     
     # Free the data
-    bd.f_freeBeamDyn()
+    bd.f_freeBeamDyn(1,1)
     
     plt.figure(2)
     plt.plot(t,vtip);

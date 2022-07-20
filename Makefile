@@ -44,8 +44,8 @@ OPT    =
 #FFLAGS = -O2 -m$(BITS) -fbacktrace -ffree-line-length-none -x f95-cpp-input  -fcheck=bounds -C
 #FFLAGS = -O3 -fbacktrace -ffree-line-length-none -x f95-cpp-input
 #LDFLAGS = -O2 -m$(BITS)  -fbacktrace $(BLAS_LAPACK_LIBS)
-FFLAGS  = $(OPT) -g -m$(BITS)  -fdefault-real-8 -fbacktrace -ffree-line-length-none -x f95-cpp-input -Wsurprising -DDOUBLE_PRECISION -fpic #-fcheck=all
-LDFLAGS = $(OPT) -g -m$(BITS) -fbacktrace
+FFLAGS  = $(OPT) -O2 -m$(BITS)  -fdefault-real-8 -fbacktrace -ffree-line-length-none -x f95-cpp-input -Wsurprising -DDOUBLE_PRECISION -fpic #-fcheck=all
+LDFLAGS = $(OPT) -O2 -m$(BITS) -fbacktrace
 
 
 	# Precision.
@@ -165,8 +165,8 @@ $(INTER_DIR):
 
 	# Run the registry if the input file changes.
 
-$(BD_DIR)/BeamDyn_Types.f90: $(BD_DIR)/Registry_BeamDyn.txt
-	$(REGISTRY) $< -I $(LIB_DIR) -O $(BD_DIR)
+#$(BD_DIR)/BeamDyn_Types.f90: $(BD_DIR)/Registry_BeamDyn.txt
+#	$(REGISTRY) $< -I $(LIB_DIR) -O $(BD_DIR)
 
 
 	# For compiling the driver/glue code.
@@ -176,7 +176,7 @@ OBJDIR=obj
 DIRC=src
 OBJC := $(OBJC:%.o=$(OBJDIR)/%.o)
 CC=gcc
-OPTIFLAG=-O3
+OPTIFLAG=-g
 CFLAGS=$(OPTIFLAG) -fPIC
 $(OBJC): $(OBJDIR)/%.o: $(DIRC)/%.c
 	$(CC) $(CFLAGS) -c  $< -o $@ 
@@ -193,8 +193,8 @@ lib: $(ALL_OBJS) $(OBJC) | $(INTER_DIR)
 	$(foreach src, $(ALL_OBJS), $(addprefix $(INTER_DIR)/,$(src))) obj/CBeamDyn.o $(LAPACK_LINK)
 
 install:
-	ln -sf $(DEST_DIR)/lib$(OUTPUT_NAME).so $(INSTALL_DIR)/lib/
-	ln -sf $(DIRC)/CBeamDyn.h $(INSTALL_DIR)/include/
+	ln -sf `pwd`/$(DEST_DIR)/lib$(OUTPUT_NAME).so $(INSTALL_DIR)/lib/
+	ln -sf `pwd`/$(DIRC)/CBeamDyn.h $(INSTALL_DIR)/include/
 
 clean:
 	$(DEL_CMD) $(INTER_DIR)$(PATH_SEP)*.mod $(INTER_DIR)$(PATH_SEP)*.obj $(INTER_DIR)$(PATH_SEP)*.o $(OUTPUT_NAME)$(EXE_EXT) \

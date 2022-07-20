@@ -7,17 +7,16 @@ MODULE CInterface
     IMPLICIT NONE
 
     TYPE(BD_UsrDataType), ALLOCATABLE :: BD_UsrData(:)
-    INTEGER(IntKi)                    :: nBeam
     
     CONTAINS  
 
-    SUBROUTINE initBeamDyn(nBeam_loc,inputFile,                 &
+    SUBROUTINE initBeamDyn(nBeam,inputFile,idx,             &
                            dt, nt, t,                           &
                            DynamicSolve,                        &
-                           omega, domega,gravity,                &
+                           omega, domega,gravity,               &
                            nxLoads, nxDisp) BIND(C,NAME="f_initBeamDyn")
 
-        INTEGER(KIND=C_INT), INTENT(IN), VALUE           :: nBeam_loc
+        INTEGER(KIND=C_INT), INTENT(IN), VALUE           :: nBeam,idx
         CHARACTER(C_CHAR),   INTENT(IN)                  :: inputFile(*)
         REAL(KIND=C_DOUBLE), INTENT(IN), OPTIONAL        :: dt, t
         INTEGER(KIND=C_INT), INTENT(IN), OPTIONAL        :: nt, DynamicSolve
@@ -25,51 +24,65 @@ MODULE CInterface
         INTEGER(KIND=C_INT), INTENT(  OUT)               :: nxLoads,nxDisp        ! Returns the number of nodes for loads and displacement
 
 
-        INTEGER(IntKi) :: i,j
+        INTEGER(IntKi) :: j
 
-        ALLOCATE(BD_UsrData(nBeam_loc))
+        IF (.NOT. ALLOCATED(BD_UsrData)) ALLOCATE(BD_UsrData(nBeam))
 
-        DO i=1,nBeam_loc
-            IF(PRESENT(dt)) THEN; BD_UsrData(i)%dt = dt; ELSE; BD_UsrData(i)%dt = 4e-3;  ENDIF
-            IF(PRESENT(nt)) THEN; BD_UsrData(i)%nt = nt; ELSE; BD_UsrData(i)%nt = 10  ;  ENDIF
-            IF(PRESENT(t))  THEN; BD_UsrData(i)%t  = t ; ELSE; BD_UsrData(i)%t  = 0.0 ;  ENDIF
+        
+        IF(PRESENT(dt)) THEN; BD_UsrData(idx)%dt = dt; ELSE; BD_UsrData(idx)%dt = 4e-3;  ENDIF
+        IF(PRESENT(nt)) THEN; BD_UsrData(idx)%nt = nt; ELSE; BD_UsrData(idx)%nt = 10  ;  ENDIF
+        IF(PRESENT(t))  THEN; BD_UsrData(idx)%t  = t ; ELSE; BD_UsrData(idx)%t  = 0.0 ;  ENDIF
 
-            IF(PRESENT(DynamicSolve)) THEN; BD_UsrData(i)%DynamicSolve   = DynamicSolve==1; ELSE; BD_UsrData(i)%DynamicSolve = .TRUE.; ENDIF ! flag for dynamic or static solve (static:false)
-            BD_UsrData(i)%GlbRotBladeT0  = .TRUE.! Initial blade root orientation is also the GlbRot reference frame
-                
-            BD_UsrData(i)%GlbPos      = (/0.0, 0.0, 1.0/)       ! Initial vector position 
-            BD_UsrData(i)%RootOri     = 0.0 ! DCM of the initial root orientation
-            BD_UsrData(i)%GlbRot      = 0.0 ! 
-            BD_UsrData(i)%RootRelInit = 0.0 !
-            DO j=1,3
-                BD_UsrData(i)%RootOri(j,j)     = 1.0 ! DCM of the initial root orientation
-                BD_UsrData(i)%GlbRot(j,j)      = 1.0 ! 
-                BD_UsrData(i)%RootRelInit(j,j) = 1.0 !
-            END DO 
+        IF(PRESENT(DynamicSolve)) THEN; BD_UsrData(idx)%DynamicSolve   = DynamicSolve==1; ELSE; BD_UsrData(idx)%DynamicSolve = .TRUE.; ENDIF ! flag for dynamic or static solve (static:false)
+        BD_UsrData(idx)%GlbRotBladeT0  = .TRUE.! Initial blade root orientation is also the GlbRot reference frame
+            
+        BD_UsrData(idx)%GlbPos      = (/0.0, 0.0, 1.0/)       ! Initial vector position 
+        BD_UsrData(idx)%RootOri     = 0.0 ! DCM of the initial root orientation
+        BD_UsrData(idx)%GlbRot      = 0.0 ! 
+        BD_UsrData(idx)%RootRelInit = 0.0 !
+        DO j=1,3
+            BD_UsrData(idx)%RootOri(j,j)     = 1.0 ! DCM of the initial root orientation
+            BD_UsrData(idx)%GlbRot(j,j)      = 1.0 ! 
+            BD_UsrData(idx)%RootRelInit(j,j) = 1.0 !
+        END DO 
 
-            IF(PRESENT(omega))   THEN; BD_UsrData(i)%omega(:)    =  omega(:);   ELSE; BD_UsrData(i)%omega    = 0.0; ENDIF    ! Angular velocity vector
-            IF(PRESENT(domega))  THEN; BD_UsrData(i)%omega(:)    = domega(:);   ELSE; BD_UsrData(i)%domega   = 0.0; ENDIF    ! Angular acceleration vector
-            IF(PRESENT(gravity)) THEN; BD_UsrData(i)%grav(:)     = gravity(:);  ELSE; BD_UsrData(i)%grav     = 0.0; ENDIF    ! Angular acceleration vector
+        IF(PRESENT(omega))   THEN; BD_UsrData(idx)%omega(:)    =  omega(:);   ELSE; BD_UsrData(idx)%omega    = 0.0; ENDIF    ! Angular velocity vector
+        IF(PRESENT(domega))  THEN; BD_UsrData(idx)%domega(:)   = domega(:);   ELSE; BD_UsrData(idx)%domega   = 0.0; ENDIF    ! Angular acceleration vector
+        IF(PRESENT(gravity)) THEN; BD_UsrData(idx)%grav(:)     = gravity(:);  ELSE; BD_UsrData(idx)%grav     = 0.0; ENDIF    ! Angular acceleration vector
 
-            ! copy string input file from C to Fortran
-            j=1
-            BD_UsrData(i)%InputFile=" "
-            DO WHILE (inputFile(j) /= C_NULL_CHAR .AND. j<LEN(BD_UsrData(i)%InputFile))
-                BD_UsrData(i)%InputFile(j:j) = inputFile(j)
-                j = j + 1
-            ENDDO
-            BD_UsrData(i)%InputFile = TRIM(BD_UsrData(i)%InputFile)
-
-            CALL BeamDyn_C_Init(BD_UsrData(i))
-
+        ! copy string input file from C to Fortran
+        j=1
+        BD_UsrData(idx)%InputFile=" "
+        DO WHILE (inputFile(j) /= C_NULL_CHAR .AND. j<LEN(BD_UsrData(idx)%InputFile))
+            BD_UsrData(idx)%InputFile(j:j) = inputFile(j)
+            j = j + 1
         ENDDO
+        BD_UsrData(idx)%InputFile = TRIM(BD_UsrData(idx)%InputFile)
 
-        nBeam = nBeam_loc
+        CALL BeamDyn_C_Init(BD_UsrData(idx))
 
-        nxLoads = BD_UsrData(1)%BD_Input(1)%DistrLoad%Nnodes
-        nxDisp  = BD_UsrData(1)%BD_Output%BldMotion%Nnodes
+        nxLoads = BD_UsrData(idx)%BD_Input(1)%DistrLoad%Nnodes
+        nxDisp  = BD_UsrData(idx)%BD_Output%BldMotion%Nnodes
  
     END SUBROUTINE initBeamDyn
+
+    SUBROUTINE BDrefresh(idx,                      &
+                         dt, nt, t,                &
+                         omega, domega) BIND(C,NAME="f_refresh")
+
+        INTEGER(KIND=C_INT), INTENT(IN), VALUE           :: idx
+        REAL(KIND=C_DOUBLE), INTENT(IN), OPTIONAL        :: dt, t
+        INTEGER(KIND=C_INT), INTENT(IN), OPTIONAL        :: nt
+        REAL(KIND=C_DOUBLE), INTENT(IN), OPTIONAL        :: omega(3), domega(3)
+        
+        IF(PRESENT(dt)) BD_UsrData(idx)%dt = dt
+        IF(PRESENT(nt)) BD_UsrData(idx)%nt = nt
+        IF(PRESENT(t))  BD_UsrData(idx)%t  = t 
+
+        IF(PRESENT(omega))  BD_UsrData(idx)%omega(:)    =  omega(:)
+        IF(PRESENT(domega)) BD_UsrData(idx)%domega(:)    = domega(:)
+ 
+    END SUBROUTINE BDrefresh
 
     SUBROUTINE getPositions(xLoads, xDisp) BIND(C,NAME="f_getPositions")
         TYPE(c_ptr), INTENT(OUT) :: xLoads,xDisp
@@ -93,26 +106,27 @@ MODULE CInterface
 
     END SUBROUTINE getPositions
 
-    SUBROUTINE freeBeamDyn() BIND(C,NAME="f_freeBeamDyn")
+    SUBROUTINE freeBeamDyn(idxBeam, deallocAll) BIND(C,NAME="f_freeBeamDyn")
 
-        INTEGER(IntKi) :: i
-        DO i=1,nBeam
-            CALL BeamDyn_C_End(BD_UsrData(i))
-            
-        ENDDO
+        INTEGER(C_INT),INTENT(IN),VALUE:: idxBeam
+        INTEGER(C_INT),INTENT(IN),VALUE:: deallocAll
+        
+        CALL BeamDyn_C_End(BD_UsrData(idxBeam))
 
-        DEALLOCATE(BD_UsrData)
+        IF (deallocAll .eq. 1) THEN
+            DEALLOCATE(BD_UsrData)
+        ENDIF
 
     END SUBROUTINE freeBeamDyn
     
 
     SUBROUTINE setLoads(loads,idxBeam) BIND(C,NAME="f_setLoads")
         IMPLICIT NONE
-        TYPE(C_PTR),INTENT(IN)      :: loads       ! coordinates for key points
+        TYPE(C_PTR),INTENT(IN)         :: loads       ! coordinates for key points
         INTEGER(C_INT),INTENT(IN),VALUE:: idxBeam
 
         REAL(R8Ki), POINTER          :: f_loads(:,:)
-        CALL c_f_pointer(loads,f_loads, [BD_UsrData%nxL,6]);
+        CALL c_f_pointer(loads,f_loads, [BD_UsrData%nxL,6])
         CALL BeamDyn_C_setLoads(BD_UsrData(idxBeam),f_loads)
 
     END SUBROUTINE setLoads
@@ -146,7 +160,7 @@ MODULE CInterface
         CALL c_f_pointer(u ,f_u ,[BD_UsrData(idxBeam)%nxD,6])
         CALL c_f_pointer(du,f_du,[BD_UsrData(idxBeam)%nxD,6])
 
-        CALL BeamDyn_C_getDisp(BD_UsrData(1),f_u,f_du)
+        CALL BeamDyn_C_getDisp(BD_UsrData(idxBeam),f_u,f_du)
 
         !write(*,*) BD_UsrData(idxBeam)%nxD
         !write(*,*) BD_UsrData(idxBeam)%BD_Output%BldMotion%NNodes ! Should be equal!!
