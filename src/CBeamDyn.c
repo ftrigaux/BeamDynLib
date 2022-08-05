@@ -24,6 +24,7 @@ void BD_initBeamDyn(BD_Data *bd)
                 &bd->dt, &bd->nt, &bd->t,          
                 &bd->DynamicSolve,       
                 bd->omega, bd->domega, bd->gravity,      
+                bd->GlbPos, &bd->GlbRotBladeT0, bd->GlbRot, bd->RootOri,
                 &bd->nxL, &bd->nxD);
 
     ALLOCATE2(bd->xLoads,double,bd->nxL,3);
@@ -138,20 +139,40 @@ int main(int argc, char *argv[])
     for (k=0;k<nBeam;k++)
     {
         bd[k] = (BD_Data*) malloc(sizeof(BD_Data));
+
+        // Set the number of beams, the index of each beam, dynamic solve and input file
         bd[k]->nBeam        = nBeam;
         bd[k]->idx          = k+1;
         bd[k]->DynamicSolve = 1;
         bd[k]->inputFile = "./run/nrel5mw_dynamic/bd_primary_nrel_5mw_dynamic.inp";
 
+        // Set the time steps and the number of time steps
         bd[k]->dt        = 1e-3;
         bd[k]->nt        = 100;
         bd[k]->t         = 0;
         
+        // Set the rotation speed and the gravity constrains
         for (i=0;i<3;i++){
             bd[k]->omega[i]     = 0.0;
             bd[k]->domega[i]    = 0.0;
             bd[k]->gravity[i]   = 0.0;
         }
+
+        // Set the position vector, the global orientation and the initial root orientation
+        bd[k]->GlbRotBladeT0 = 1;
+        for (i=0;i<3;i++){
+            bd[k]->GlbPos[i]    = 0.0;
+            for (j=0;j<3;j++){
+                bd[k]->GlbRot[i][j]  = 0;
+                bd[k]->RootOri[i][j] = 0;
+                if (i==j)
+                {
+                    bd[k]->GlbRot[i][j]  = 1;
+                    bd[k]->RootOri[i][j] = 1;
+                }
+            }
+        }
+
         BD_initBeamDyn(bd[k]);
 
         printf("nxD = %d \n",bd[k]->nxD);

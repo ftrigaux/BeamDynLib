@@ -10,17 +10,23 @@ MODULE CInterface
     
     CONTAINS  
 
-    SUBROUTINE initBeamDyn(nBeam,inputFile,idx,             &
-                           dt, nt, t,                           &
-                           DynamicSolve,                        &
-                           omega, domega,gravity,               &
+    ! initBeamDyn : initiate the BeamDyn parameters.
+    ! if GlbRotBladeT0 is True, then the GlbRot matrix will be set equal to RootOri. This mean that the initial Root Orientation is the global frame.
+    ! if not, GlbRot will be set to [I], and the RootIni will be used as initial Orientation relative to the global frame.
+    ! 
+    SUBROUTINE initBeamDyn(nBeam,inputFile,idx,                    &
+                           dt, nt, t,                              &
+                           DynamicSolve,                           &
+                           omega, domega,gravity,                  &
+                           GlbPos, GlbRotBladeT0, GlbRot, RootOri, &
                            nxLoads, nxDisp) BIND(C,NAME="f_initBeamDyn")
 
         INTEGER(KIND=C_INT), INTENT(IN), VALUE           :: nBeam,idx
         CHARACTER(C_CHAR),   INTENT(IN)                  :: inputFile(*)
         REAL(KIND=C_DOUBLE), INTENT(IN), OPTIONAL        :: dt, t
-        INTEGER(KIND=C_INT), INTENT(IN), OPTIONAL        :: nt, DynamicSolve
+        INTEGER(KIND=C_INT), INTENT(IN), OPTIONAL        :: nt, DynamicSolve, GlbRotBladeT0
         REAL(KIND=C_DOUBLE), INTENT(IN), OPTIONAL        :: omega(3), domega(3), gravity(3)
+        REAL(KIND=C_DOUBLE), INTENT(IN), OPTIONAL        :: GlbPos(3), GlbRot(3,3), RootOri(3,3)
         INTEGER(KIND=C_INT), INTENT(  OUT)               :: nxLoads,nxDisp        ! Returns the number of nodes for loads and displacement
 
 
@@ -33,17 +39,15 @@ MODULE CInterface
         IF(PRESENT(nt)) THEN; BD_UsrData(idx)%nt = nt; ELSE; BD_UsrData(idx)%nt = 10  ;  ENDIF
         IF(PRESENT(t))  THEN; BD_UsrData(idx)%t  = t ; ELSE; BD_UsrData(idx)%t  = 0.0 ;  ENDIF
 
-        IF(PRESENT(DynamicSolve)) THEN; BD_UsrData(idx)%DynamicSolve   = DynamicSolve==1; ELSE; BD_UsrData(idx)%DynamicSolve = .TRUE.; ENDIF ! flag for dynamic or static solve (static:false)
-        BD_UsrData(idx)%GlbRotBladeT0  = .TRUE.! Initial blade root orientation is also the GlbRot reference frame
+        IF(PRESENT(DynamicSolve))  THEN; BD_UsrData(idx)%DynamicSolve    = DynamicSolve==1;  ELSE; BD_UsrData(idx)%DynamicSolve = .TRUE.; ENDIF ! flag for dynamic or static solve (static:false)
+        IF(PRESENT(GlbRotBladeT0)) THEN; BD_UsrData(idx)%GlbRotBladeT0   = GlbRotBladeT0==1; ELSE; BD_UsrData(idx)%GlbRotBladeT0 = .TRUE.; ENDIF ! Initial blade root orientation is also the GlbRot reference frame
             
-        BD_UsrData(idx)%GlbPos      = (/0.0, 0.0, 1.0/)       ! Initial vector position 
-        BD_UsrData(idx)%RootOri     = 0.0 ! DCM of the initial root orientation
-        BD_UsrData(idx)%GlbRot      = 0.0 ! 
-        BD_UsrData(idx)%RootRelInit = 0.0 !
+        IF(PRESENT(GlbPos))      THEN; BD_UsrData(idx)%GlbPos(:)      = GlbPos(:)  ; ELSE; BD_UsrData(idx)%GlbPos      =  (/0.0, 0.0, 1.0/); ENDIF ! Initial vector position 
+        IF(PRESENT(GlbRot))      THEN; BD_UsrData(idx)%GlbRot         = GlbRot     ; ELSE; BD_UsrData(idx)%GlbRot      = 0.0;                ENDIF ! DCM of the global blade frame (e.g. used for gravity)
+        IF(PRESENT(RootOri))     THEN; BD_UsrData(idx)%RootOri        = RootOri    ; ELSE; BD_UsrData(idx)%RootOri     = 0.0;                ENDIF ! DCM of the root orientation
         DO j=1,3
-            BD_UsrData(idx)%RootOri(j,j)     = 1.0 ! DCM of the initial root orientation
-            BD_UsrData(idx)%GlbRot(j,j)      = 1.0 ! 
-            BD_UsrData(idx)%RootRelInit(j,j) = 1.0 !
+            IF( .NOT. PRESENT(GlbRot))      BD_UsrData(idx)%GlbRot(j,j)      = 1.0
+            IF( .NOT. PRESENT(RootOri))     BD_UsrData(idx)%RootOri(j,j)     = 1.0
         END DO 
 
         IF(PRESENT(omega))   THEN; BD_UsrData(idx)%omega(:)    =  omega(:);   ELSE; BD_UsrData(idx)%omega    = 0.0; ENDIF    ! Angular velocity vector
