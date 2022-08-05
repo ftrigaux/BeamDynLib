@@ -185,7 +185,7 @@ MODULE BeamDyn_Usr
          ! initialize BD_Input and BD_InputTimes
       usr%BD_InputTimes(1) = usr%t
       !CALL BD_InputSolve( BD_InputTimes(1), BD_Input(1), DvrData, ErrStat, ErrMsg)
-      CALL BDUsr_InputSolve(usr)
+      CALL BDUsr_InputSolve(usr,1)
       
       DO j = 2,BD_interp_order+1
             ! create new meshes
@@ -195,7 +195,7 @@ MODULE BeamDyn_Usr
             ! solve for inputs at previous time steps
          usr%BD_InputTimes(j) = usr%t - (j - 1) * usr%dt
          ! CALL BD_InputSolve( BD_InputTimes(j), BD_Input(j), DvrData, ErrStat, ErrMsg)
-         CALL BDUsr_InputSolve(usr)
+         CALL BDUsr_InputSolve(usr,j)
             CALL CheckError(usr)
       END DO
 
@@ -236,7 +236,7 @@ MODULE BeamDyn_Usr
       
       usr%BD_InputTimes(1)  = usr%t + usr%dt
       !CALL BD_InputSolve( BD_InputTimes(1), BD_Input(1), DvrData, ErrStat, ErrMsg)
-      CALL BDUsr_InputSolve(usr)
+      CALL BDUsr_InputSolve(usr,1)
          CALL CheckError(usr)
       
                        
@@ -690,9 +690,11 @@ SUBROUTINE BDuser_InitRotationCenterMesh(usr)
    
 END SUBROUTINE BDuser_InitRotationCenterMesh
 
-SUBROUTINE BDUsr_InputSolve(usr)
+SUBROUTINE BDUsr_InputSolve(usr,i)
  
    TYPE(BD_UsrDataType) :: usr
+
+   INTEGER,INTENT(IN) :: i
                                          
    ! local variables
    REAL(R8Ki)                                 :: Orientation(3,3)
@@ -711,7 +713,7 @@ SUBROUTINE BDUsr_InputSolve(usr)
    !.............................
    
    ! Compute the orientation at the center of rotation 
-   wt = usr%w * (usr%t)
+   wt = usr%w * (usr%BD_InputTimes(i))
    swt = sin( wt )
    cwt = cos( wt )
    Orientation(1,1) = cwt
@@ -728,7 +730,7 @@ SUBROUTINE BDUsr_InputSolve(usr)
       
    usr%RotationCenter%Orientation(:,:,1) = matmul(Orientation, matmul(usr%RotationCenter%RefOrientation(:,:,1),usr%RootRelInit))
 
-   CALL Transfer_Point_to_Point( usr%RotationCenter, usr%BD_Input(1)%RootMotion, usr%Map_RotationCenter_to_RootMotion, ErrStat2, ErrMsg2)  
+   CALL Transfer_Point_to_Point( usr%RotationCenter, usr%BD_Input(i)%RootMotion, usr%Map_RotationCenter_to_RootMotion, ErrStat2, ErrMsg2)  
       CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
       
    !.............................
