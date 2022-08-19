@@ -44,8 +44,7 @@ void BD_initBeamDyn(BD_Data *bd)
 void BD_refresh(BD_Data *bd)
 {
     f_refresh(bd->idx,
-                &bd->dt, &bd->nt, &bd->t,
-                bd->omega, bd->domega);
+                &bd->dt, &bd->nt, &bd->t);
 
 }
 

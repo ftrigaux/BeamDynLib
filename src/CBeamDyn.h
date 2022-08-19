@@ -116,7 +116,7 @@ void BD_getRotationMatrix(double Rot[][3], double c[3]);
 // Fortran functions
 void f_initBeamDyn(int,char*,int,double*,int*,double*,int*,double[3],double[3],double[3],double[3],int*,double[3][3],double[3][3],int*,int*);
 
-void f_refresh(int,double*,int*,double*,double[3],double[3]);
+void f_refresh(int,double*,int*,double*);
 
 void f_getPositions(double**,double**);
 

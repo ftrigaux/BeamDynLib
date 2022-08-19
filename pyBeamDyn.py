@@ -59,7 +59,7 @@ bd.f_initBeamDyn.argtypes = [ct.c_int,ct.c_char_p,ct.c_int,
                              ct.POINTER(ct.c_int), ct.POINTER(ct.c_int)]
 bd.f_initBeamDyn.restype  = None
 
-bd.f_refresh.argtypes = [ct.c_int, ct.POINTER(ct.c_double),ct.POINTER(ct.c_int),ct.POINTER(ct.c_double),ND_ARRAY_3,ND_ARRAY_3]
+bd.f_refresh.argtypes = [ct.c_int, ct.POINTER(ct.c_double),ct.POINTER(ct.c_int),ct.POINTER(ct.c_double)]
 bd.f_refresh.restype  = None
 
 bd.f_getPositions.argtypes = [ND_POINTER_2,ND_POINTER_2]
@@ -96,7 +96,7 @@ def py_initBeamDyn(nBeam,inputFile,idxBeam,dt=None,nt=None,t=None,DynamicSolve=N
 
 def py_refresh(idxBeam,dt=None,nt=None,t=None,omega=None,domega=None):
     nxLoads = ct.c_int(0); nxDisp = ct.c_int(0);
-    bd.f_refresh(idxBeam,opt(dt,ct.c_double),opt(nt,ct.c_int),opt(t,ct.c_double),opt(omega,ct.c_double),opt(domega,ct.c_double));
+    bd.f_refresh(idxBeam,opt(dt,ct.c_double),opt(nt,ct.c_int),opt(t,ct.c_double));
     return nxLoads.value, nxDisp.value
 
 def getRotationMatrix(c):

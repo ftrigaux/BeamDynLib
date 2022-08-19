@@ -71,20 +71,15 @@ MODULE CInterface
     END SUBROUTINE initBeamDyn
 
     SUBROUTINE BDrefresh(idx,                      &
-                         dt, nt, t,                &
-                         omega, domega) BIND(C,NAME="f_refresh")
+                         dt, nt, t) BIND(C,NAME="f_refresh")
 
         INTEGER(KIND=C_INT), INTENT(IN), VALUE           :: idx
         REAL(KIND=C_DOUBLE), INTENT(IN), OPTIONAL        :: dt, t
         INTEGER(KIND=C_INT), INTENT(IN), OPTIONAL        :: nt
-        REAL(KIND=C_DOUBLE), INTENT(IN), OPTIONAL        :: omega(3), domega(3)
         
         IF(PRESENT(dt)) BD_UsrData(idx)%dt = dt
         IF(PRESENT(nt)) BD_UsrData(idx)%nt = nt
-        IF(PRESENT(t))  BD_UsrData(idx)%t  = t 
-
-        IF(PRESENT(omega))  BD_UsrData(idx)%omega(:)    =  omega(:)
-        IF(PRESENT(domega)) BD_UsrData(idx)%domega(:)    = domega(:)
+        IF(PRESENT(t))  BD_UsrData(idx)%t  = t
  
     END SUBROUTINE BDrefresh
 
