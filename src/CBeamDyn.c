@@ -27,17 +27,17 @@ void BD_initBeamDyn(BD_Data *bd)
                 bd->GlbPos, &bd->GlbRotBladeT0, bd->GlbRot, bd->RootOri,
                 &bd->nxL, &bd->nxD);
 
-    ALLOCATE2(bd->xLoads,double,bd->nxL,3);
-    ALLOCATE2(bd->xDisp, double,bd->nxD,3);
-    ALLOCATE2(bd->loads, double,bd->nxL,6);
-    ALLOCATE2(bd->u,     double,bd->nxD,6);
-    ALLOCATE2(bd->du,    double,bd->nxD,6);
+    ALLOCATE2(bd->xLoads,double,3,bd->nxL);
+    ALLOCATE2(bd->xDisp, double,3,bd->nxD);
+    ALLOCATE2(bd->loads, double,6,bd->nxL);
+    ALLOCATE2(bd->u,     double,6,bd->nxD);
+    ALLOCATE2(bd->du,    double,6,bd->nxD);
 
-    FILLZERO2(bd->xLoads,bd->nxL,3);
-    FILLZERO2(bd->xDisp, bd->nxD,3);
-    FILLZERO2(bd->loads, bd->nxL,6);
-    FILLZERO2(bd->u,     bd->nxD,6);
-    FILLZERO2(bd->du,    bd->nxD,6);
+    FILLZERO2(bd->xLoads,3, bd->nxL);
+    FILLZERO2(bd->xDisp, 3, bd->nxD);
+    FILLZERO2(bd->loads, 6, bd->nxL);
+    FILLZERO2(bd->u,     6, bd->nxD);
+    FILLZERO2(bd->du,    6, bd->nxD);
 
 }
 
@@ -51,12 +51,12 @@ void BD_refresh(BD_Data *bd)
 
 void BD_getPositions(BD_Data *bd)
 {
-    RAVEL2(bd,xLoads,bd->nxL,3,double);
-    RAVEL2(bd,xDisp ,bd->nxL,3,double);
+    RAVEL2(bd,xLoads,3,bd->nxL,double);
+    RAVEL2(bd,xDisp ,3,bd->nxL,double);
     f_getPositions(&rav_xLoads, &rav_xDisp);
 
-    UNRAVEL2(bd,xLoads,bd->nxL,3,double);
-    UNRAVEL2(bd,xDisp ,bd->nxL,3,double);
+    UNRAVEL2(bd,xLoads,3,bd->nxL,double);
+    UNRAVEL2(bd,xDisp ,3,bd->nxL,double);
 
 }
 
@@ -64,38 +64,40 @@ void BD_freeBeamDyn(BD_Data *bd, int deallocAll)
 {
     f_freeBeamDyn(bd->idx,deallocAll);
 
-    DEALLOCATE2(bd->xLoads,bd->nxL);
-    DEALLOCATE2(bd->xDisp ,bd->nxD);
-    DEALLOCATE2(bd->loads ,bd->nxL);
-    DEALLOCATE2(bd->u     ,bd->nxD);
-    DEALLOCATE2(bd->du    ,bd->nxD);
+    DEALLOCATE2(bd->xLoads,3);
+    DEALLOCATE2(bd->xDisp ,3);
+    DEALLOCATE2(bd->loads ,6);
+    DEALLOCATE2(bd->u     ,6);
+    DEALLOCATE2(bd->du    ,6);
 }
 
 
 void BD_setLoads(BD_Data *bd)
 {
     int i,j;
-    RAVEL2(bd,loads,bd->nxL,6,double);
+    RAVEL2(bd,loads,6,bd->nxL,double);
     f_setLoads(&rav_loads,bd->idx);
-    UNRAVEL2(bd,loads,bd->nxL,6,double);
+    UNRAVEL2(bd,loads,6,bd->nxL,double);
 }
 
 void BD_solve(BD_Data *bd)
 {
     f_solve(bd->idx);
+
+    bd->t += bd->nt * bd->dt;
 }
 
 void BD_getDisplacement(BD_Data *bd)
 {
-    RAVEL2(bd,xDisp ,bd->nxD,3,double);
-    RAVEL2(bd,u,bd->nxD,6,double);
-    RAVEL2(bd,du,bd->nxD,6,double);
+    RAVEL2(bd,xDisp ,3,bd->nxD,double);
+    RAVEL2(bd,u     ,6,bd->nxD,double);
+    RAVEL2(bd,du    ,6,bd->nxD,double);
 
     f_getDisplacement(&rav_xDisp,&rav_u,&rav_du,bd->idx);
 
-    UNRAVEL2(bd,xDisp ,bd->nxD,3,double);
-    UNRAVEL2(bd,u,bd->nxD,6,double);
-    UNRAVEL2(bd,du,bd->nxD,6,double);
+    UNRAVEL2(bd,xDisp ,3,bd->nxD,double);
+    UNRAVEL2(bd,u     ,6,bd->nxD,double);
+    UNRAVEL2(bd,du    ,6,bd->nxD,double);
 }
 
 void BD_setBC(BD_Data *bd)
@@ -117,8 +119,8 @@ void BD_writeSolToBin(BD_Data *bd, char* fileName)
         exit(EXIT_FAILURE);
     }
 
-    for (i=0;i<bd->nxD;i++){
-        fwrite(bd->u[i],sizeof(double),6,fid);
+    for (i=0;i<6;i++){
+        fwrite(bd->u[i],sizeof(double),bd->nxD,fid);
     }
 
     fclose(fid);
@@ -183,13 +185,12 @@ int main(int argc, char *argv[])
 
     for (k=0;k<nBeam;k++)
     {
-        for (i=0;i<bd[k]->nxL;i++)
+        for (i=0;i<6;i++)
         {
-            for (j=0; j<6;j++)
+            for (j=0; j<bd[k]->nxL;j++)
             {
                 bd[k]->loads[i][j] = 0.0;
             }
-            bd[k]->loads[i][0] = 1e3;
         }
     
 
@@ -210,9 +211,9 @@ int main(int argc, char *argv[])
 
     fid = fopen("u.bin","wb");  // r for read, b for binary
 
-    for (i=0;i<bd[0]->nxD;i++){
+    for (i=0;i<6;i++){
         
-        fwrite(bd[0]->u[i],sizeof(double),6,fid);
+        fwrite(bd[0]->u[i],sizeof(double),bd[0]->nxD,fid);
     }
 
     fclose(fid);
@@ -231,7 +232,7 @@ int main(int argc, char *argv[])
 
 /* Get the rotation matrix from the internal Wiener-Milenkovic parameters of GEBT. 
 */
-void BD_getRotationMatrix(double out[3][3], double c[3])
+void BD_getRotationMatrix(double out[][3], double c[3])
 {
     double c0,fac;
     c0 = 2.0 - (c[0]*c[0] + c[1]*c[1] + c[2]*c[2])/8.0;
@@ -246,5 +247,29 @@ void BD_getRotationMatrix(double out[3][3], double c[3])
     out[2][0] =  fac * (2*(c[0]*c[2] + c0*c[1]));
     out[2][1] =  fac * (2*(c[1]*c[2] - c0*c[0]));
     out[2][2] =  fac * (c0*c0 - c[0]*c[0] - c[1]*c[1] + c[2]*c[2]);
+
+    
+    double c1,c2,c3,tr0;
+    c1  = c[0]/4.0;
+    c2  = c[1]/4.0;
+    c3  = c[2]/4.0;
+    c0  = 0.5 * (1.0-c1*c1-c2*c2-c3*c3);     // 1/4 the value of the the AIAA paper (after plugging in c1, c2, c3 conversions)
+
+
+    tr0 = 1.0 - c0;                          // This is 1/4 the value of the AIAA paper, after converting c0.
+    tr0 = 2.0/(tr0*tr0);                     // this is 32x the equivalent term from the AIAA paper.   This is well behaved and won't go to zero.
+
+    // The following terms can be shown to match the transpose of the DCM given in the AIAA paper.
+    out[0][0] = tr0*(c1*c1 + c0*c0) - 1.0;
+    out[1][0] = tr0*(c1*c2 + c0*c3);
+    out[2][0] = tr0*(c1*c3 - c0*c2);
+
+    out[0][1] = tr0*(c1*c2 - c0*c3);
+    out[1][1] = tr0*(c2*c2 + c0*c0) - 1.0;
+    out[2][1] = tr0*(c2*c3 + c0*c1);
+
+    out[0][2] = tr0*(c1*c3 + c0*c2);
+    out[1][2] = tr0*(c2*c3 - c0*c1);
+    out[2][2] = tr0*(c3*c3 + c0*c0) - 1.0;
 
 }

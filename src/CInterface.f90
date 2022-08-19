@@ -94,15 +94,15 @@ MODULE CInterface
         REAL(R8Ki), POINTER :: f_xLoads(:,:), f_xDisp(:,:)
         INTEGER(IntKi) :: i
 
-        CALL c_f_pointer(xLoads,f_xLoads,[BD_UsrData(1)%BD_Input(1)%DistrLoad%Nnodes,3])
-        CALL c_f_pointer(xDisp, f_xDisp, [BD_UsrData(1)%BD_Output%BldMotion%Nnodes,3])
+        CALL c_f_pointer(xLoads,f_xLoads,[3,BD_UsrData(1)%BD_Input(1)%DistrLoad%Nnodes])
+        CALL c_f_pointer(xDisp, f_xDisp, [3,BD_UsrData(1)%BD_Output%BldMotion%Nnodes])
 
         DO i=1,BD_UsrData(1)%BD_Input(1)%DistrLoad%Nnodes
-            f_xLoads(i,1:3) = BD_UsrData(1)%BD_Input(1)%DistrLoad%Position(1:3,i)
+            f_xLoads(1:3,i) = BD_UsrData(1)%BD_Input(1)%DistrLoad%Position(1:3,i) - BD_UsrData(1)%GlbPos(1:3)
         END DO
 
         DO i=1,BD_UsrData(1)%BD_Output%BldMotion%Nnodes
-            f_xDisp(i,1:3) = BD_UsrData(1)%BD_Output%BldMotion%Position(1:3,i)
+            f_xDisp(1:3,i) = BD_UsrData(1)%BD_Output%BldMotion%Position(1:3,i) - BD_UsrData(1)%GlbPos(1:3)
         END DO
 
         xLoads = C_LOC(f_xLoads(1,1))
@@ -130,7 +130,7 @@ MODULE CInterface
         INTEGER(C_INT),INTENT(IN),VALUE:: idxBeam
 
         REAL(R8Ki), POINTER          :: f_loads(:,:)
-        CALL c_f_pointer(loads,f_loads, [BD_UsrData%nxL,6])
+        CALL c_f_pointer(loads,f_loads, [6,BD_UsrData%nxL])
         CALL BeamDyn_C_setLoads(BD_UsrData(idxBeam),f_loads)
 
     END SUBROUTINE setLoads
@@ -158,21 +158,16 @@ MODULE CInterface
         REAL(R8Ki), POINTER          :: f_u(:,:)
         REAL(R8Ki), POINTER          :: f_du(:,:)
 
-        INTEGER(IntKi) :: i,j
+        INTEGER(IntKi) :: i
 
-        CALL c_f_pointer(x ,f_x ,[BD_UsrData(idxBeam)%nxD,3])
-        CALL c_f_pointer(u ,f_u ,[BD_UsrData(idxBeam)%nxD,6])
-        CALL c_f_pointer(du,f_du,[BD_UsrData(idxBeam)%nxD,6])
+        CALL c_f_pointer(x ,f_x ,[3,BD_UsrData(idxBeam)%nxD])
+        CALL c_f_pointer(u ,f_u ,[6,BD_UsrData(idxBeam)%nxD])
+        CALL c_f_pointer(du,f_du,[6,BD_UsrData(idxBeam)%nxD])
 
         CALL BeamDyn_C_getDisp(BD_UsrData(idxBeam),f_u,f_du)
 
-        !write(*,*) BD_UsrData(idxBeam)%nxD
-        !write(*,*) BD_UsrData(idxBeam)%BD_Output%BldMotion%NNodes ! Should be equal!!
-
         DO i=1,BD_UsrData(idxBeam)%BD_Output%BldMotion%NNodes
-            DO j=1,3
-                f_x(i,j) = BD_UsrData(idxBeam)%BD_Output%BldMotion%Position(j,i)
-            ENDDO
+                f_x(1:3,i) = BD_UsrData(idxBeam)%BD_Output%BldMotion%Position(1:3,i)
         ENDDO
 
         x  = C_LOC(f_x(1,1));

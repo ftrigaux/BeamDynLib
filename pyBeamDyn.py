@@ -99,6 +99,32 @@ def py_refresh(idxBeam,dt=None,nt=None,t=None,omega=None,domega=None):
     bd.f_refresh(idxBeam,opt(dt,ct.c_double),opt(nt,ct.c_int),opt(t,ct.c_double),opt(omega,ct.c_double),opt(domega,ct.c_double));
     return nxLoads.value, nxDisp.value
 
+def getRotationMatrix(c):
+    c1  = c[0]/4.0;
+    c2  = c[1]/4.0;
+    c3  = c[2]/4.0;
+    c0  = 0.5 * (1.0-c1*c1-c2*c2-c3*c3);     # 1/4 the value of the the AIAA paper (after plugging in c1, c2, c3 conversions)
+
+
+    tr0 = 1.0 - c0;                          # This is 1/4 the value of the AIAA paper, after converting c0.
+    tr0 = 2.0/(tr0*tr0);                     # This is 32x the equivalent term from the AIAA paper.   This is well behaved and won't go to zero.
+
+    # The following terms can be shown to match the transpose of the DCM given in the AIAA paper.
+    Rot = np.zeros((3,3));
+    Rot[0,0] = tr0*(c1*c1 + c0*c0) - 1.0;
+    Rot[1,0] = tr0*(c1*c2 + c0*c3);
+    Rot[2,0] = tr0*(c1*c3 - c0*c2);
+
+    Rot[0,1] = tr0*(c1*c2 - c0*c3);
+    Rot[1,1] = tr0*(c2*c2 + c0*c0) - 1.0;
+    Rot[2,1] = tr0*(c2*c3 + c0*c1);
+
+    Rot[0,2] = tr0*(c1*c3 + c0*c2);
+    Rot[1,2] = tr0*(c2*c3 - c0*c1);
+    Rot[2,2] = tr0*(c3*c3 + c0*c0) - 1.0;
+    
+    return Rot;
+
 # Main function
 if __name__ == "__main__":
     # Initialize BeamDyn
@@ -108,12 +134,12 @@ if __name__ == "__main__":
     nt_loc = 1;
     dt_loc = 1e-2;
     
-    DynamicSolve = 1
+    DynamicSolve = 0
     
     omega=np.array([-1,0,0],order='F')
     
-    theta = 45*np.pi/180;
-    grav  = np.array([0,0,-9.81],order='F');
+    theta = 0*np.pi/180;
+    grav  = np.array([0,0,0],order='F');
     GlbRotBladeT0 = 1;
     RootOri = np.array([[ 1, 0           , 0           ],
                          [ 0, np.cos(theta),-np.sin(theta)],
@@ -121,22 +147,22 @@ if __name__ == "__main__":
     nxL, nxD = py_initBeamDyn(nBeam, inputFile, idxBeam, nt=nt_loc, dt=dt_loc, omega=omega, DynamicSolve=DynamicSolve, gravity=grav, RootOri=RootOri, GlbRotBladeT0=GlbRotBladeT0)
 
     # Get the position of the distributed loads
-    xLoads = np.zeros((nxL,3),order='F')
-    xDisp  = np.zeros((nxD,3),order='F')
+    xLoads = np.zeros((3,nxL),order='F')
+    xDisp  = np.zeros((3,nxD),order='F')
     bd.f_getPositions(NP_F_2D(xLoads),NP_F_2D(xDisp))
 
     # Set the loads
-    loads = np.zeros((nxL,6),order='F');
-    loads[:,0] = 1e3;
+    loads = np.zeros((6,nxL),order='F');
+    loads[0,:] = 1e4;
     bd.f_setLoads(NP_F_2D(loads),1)
     
     # Preallocate variables to extract displacement
-    nt = 5;
+    nt = 1;
     t = np.linspace(0,nt*dt_loc*nt_loc,nt)
     
-    x  = np.zeros((nxD,3),order='F');
-    u  = np.zeros((nxD,6),order='F');
-    du = np.zeros((nxD,6),order='F'); 
+    x  = np.zeros((3,nxD),order='F');
+    u  = np.zeros((6,nxD),order='F');
+    du = np.zeros((6,nxD),order='F'); 
 
     vtip      = np.zeros((3,nt))
     vvtip     = np.zeros((3,nt))
@@ -149,12 +175,20 @@ if __name__ == "__main__":
         # Preallocate variables to extract displacement
         bd.f_getDisplacement(NP_F_2D(x),NP_F_2D(u),NP_F_2D(du),1)
         
-        plt.plot(x[:,2],u[:,0],'.-r')
-        plt.plot(x[:,2],u[:,1],'.-g')
-        plt.plot(x[:,2],u[:,2],'.-b')
+        plt.plot(x[2,:],u[0,:],'.-r')
+        plt.plot(x[2,:],u[1,:],'.-g')
+        plt.plot(x[2,:],u[2,:],'.-b')
         
-        vtip[:,i]  =  u[-1,:3];
-        vvtip[:,i] = du[-1,:3];
+        vtip[:,i]  =  u[:3,-1];
+        vvtip[:,i] = du[:3,-1];
+    
+    # Get Rotation matrix 
+    c = u[3:,-1]
+    Rot = getRotationMatrix(c);
+    print(Rot);
+    vdir = np.array([[0,0,0],[0,0.0,0.1]]).T * x[2,-1];
+    vdirc = Rot @ vdir
+    plt.plot(x[2,-1]+vdirc[2,:],u[0,-1]+vdirc[0,:],'k--');
     
     # Free the data
     bd.f_freeBeamDyn(1,1)

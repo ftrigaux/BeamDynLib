@@ -209,7 +209,7 @@ MODULE BeamDyn_Usr
       TYPE(BD_UsrDataType) :: usr
 
       INTEGER(IntKi)  :: it
-      INTEGER(IntKi)                   :: i,j
+      INTEGER(IntKi)  :: i,j
 
       !.........................
       ! calculate outputs at t=0
@@ -484,8 +484,8 @@ MODULE BeamDyn_Usr
       INTEGER(IntKi)                   :: k
 
       DO k=1,usr%nxL
-         usr%BD_Input(1)%DistrLoad%Force(:,k) =  loads(k,1:3)
-         usr%BD_Input(1)%DistrLoad%Moment(:,k)=  loads(k,4:6)
+         usr%BD_Input(1)%DistrLoad%Force(:,k) =  loads(1:3,k)
+         usr%BD_Input(1)%DistrLoad%Moment(:,k)=  loads(4:6,k)
       ENDDO
 
    END SUBROUTINE BeamDyn_C_SetLoads
@@ -509,7 +509,7 @@ MODULE BeamDyn_Usr
          d     = usr%BD_Output%BldMotion%TranslationDisp(:, i) - usr%BD_Input(1)%RootMotion%TranslationDisp(:,1)
          d_ref = usr%BD_Output%BldMotion%Position(       :, i) - usr%BD_Input(1)%RootMotion%Position(       :,1)
          temp_vec2 = d + d_ref - matmul( RootRelOrient, d_ref ) ! tip displacement
-         u(i,1:3) = MATMUL(usr%BD_Input(1)%RootMotion%Orientation(:,:,1),temp_vec2)
+         u(1:3,i) = MATMUL(usr%BD_Input(1)%RootMotion%Orientation(:,:,1),temp_vec2)
 
          ! Tip angular/rotational deflection Wiener-Milenkovic parameter (relative to the undeflected orientation) expressed in r
          CALL LAPACK_DGEMM('N', 'T', 1.0_BDKi, usr%BD_Output%BldMotion%RefOrientation(:,:,i), RootRelOrient,   0.0_BDKi, temp33_2, ErrStat2, ErrMsg2 )
@@ -519,15 +519,15 @@ MODULE BeamDyn_Usr
             if (ErrStat >= AbortErrLev) return
          temp_vec = MATMUL(usr%BD_Input(1)%RootMotion%Orientation(:,:,1),temp_vec2) ! translate these parameters to the correct system for output
 
-         u(i,4:6)  = temp_vec;
+         u(4:6,i)  = temp_vec;
 
          ! Velocities are expressed in the global/local frame
          ! Local frame vector
-         du(i,1:3) = MATMUL(usr%BD_Output%BldMotion%Orientation(:,:,i), usr%BD_Output%BldMotion%TranslationVel(:,i))
-         du(i,4:6) = MATMUL(usr%BD_Output%BldMotion%Orientation(:,:,i), usr%BD_Output%BldMotion%RotationVel(:,i))
+         du(1:3,i) = MATMUL(usr%BD_Output%BldMotion%Orientation(:,:,i), usr%BD_Output%BldMotion%TranslationVel(:,i))
+         du(4:6,i) = MATMUL(usr%BD_Output%BldMotion%Orientation(:,:,i), usr%BD_Output%BldMotion%RotationVel(:,i))
          ! 
-         du(i,1:3) = usr%BD_Output%BldMotion%TranslationVel(1:3,i);
-         du(i,4:6) = usr%BD_Output%BldMotion%RotationVel(1:3,i);
+         du(1:3,i) = usr%BD_Output%BldMotion%TranslationVel(1:3,i);
+         du(4:6,i) = usr%BD_Output%BldMotion%RotationVel(1:3,i);
       ENDDO
 
    END SUBROUTINE BeamDyn_C_GetDisp

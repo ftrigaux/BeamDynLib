@@ -110,7 +110,7 @@ void BD_setBC(BD_Data *bd);
 void BD_writeSolToBin(BD_Data *bd, char* fileName);
 
 // Util functions
-void BD_getRotationMatrix(double Rot[3][3], double c[3]);
+void BD_getRotationMatrix(double Rot[][3], double c[3]);
 
 
 // Fortran functions
