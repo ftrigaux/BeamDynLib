@@ -44,8 +44,8 @@ OPT    =
 #FFLAGS = -O2 -m$(BITS) -fbacktrace -ffree-line-length-none -x f95-cpp-input  -fcheck=bounds -C
 #FFLAGS = -O3 -fbacktrace -ffree-line-length-none -x f95-cpp-input
 #LDFLAGS = -O2 -m$(BITS)  -fbacktrace $(BLAS_LAPACK_LIBS)
-FFLAGS  = $(OPT) -O2 -m$(BITS)  -fdefault-real-8 -fbacktrace -ffree-line-length-none -x f95-cpp-input -Wsurprising -DDOUBLE_PRECISION -fpic #-fcheck=all
-LDFLAGS = $(OPT) -O2 -m$(BITS) -fbacktrace
+FFLAGS  = $(OPT) -g -m$(BITS)  -fdefault-real-8 -fbacktrace -ffree-line-length-none -x f95-cpp-input -Wsurprising -DDOUBLE_PRECISION -fpic #-fcheck=all
+LDFLAGS = $(OPT) -g -m$(BITS) -fbacktrace
 
 
 	# Precision.
