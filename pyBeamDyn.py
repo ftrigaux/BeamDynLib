@@ -131,10 +131,11 @@ if __name__ == "__main__":
     nBeam      = 1
     idxBeam    = 1
     inputFile  = "/Users/ftrigaux/Documents/Beams/BeamDynLib/run/nrel5mw_dynamic/bd_primary_nrel_5mw_dynamic.inp"
-    nt_loc = 1;
-    dt_loc = 1e-2;
+    nt_loc     = 1;
+    nt         = 30;
+    dt_loc     = 5e-2;
     
-    DynamicSolve = 0
+    DynamicSolve = 1
     
     omega=np.array([-1,0,0],order='F')
     
@@ -157,8 +158,7 @@ if __name__ == "__main__":
     bd.f_setLoads(NP_F_2D(loads),1)
     
     # Preallocate variables to extract displacement
-    nt = 1;
-    t = np.linspace(0,nt*dt_loc*nt_loc,nt)
+    t = np.linspace(dt_loc*nt_loc,(nt+1)*dt_loc*nt_loc,nt)
     
     x  = np.zeros((3,nxD),order='F');
     u  = np.zeros((6,nxD),order='F');
@@ -194,7 +194,7 @@ if __name__ == "__main__":
     bd.f_freeBeamDyn(1,1)
     
     plt.figure(2)
-    plt.plot(t*180/np.pi,vtip[0,:],'r');
-    plt.plot(t*180/np.pi,vtip[1,:],'g');
-    plt.plot(t*180/np.pi,vtip[2,:],'b');
+    plt.plot(t,vtip[0,:],'r');
+    plt.plot(t,vtip[1,:],'g');
+    plt.plot(t,vtip[2,:],'b');
     plt.grid(True);

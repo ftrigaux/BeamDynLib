@@ -148,8 +148,8 @@ int main(int argc, char *argv[])
         bd[k]->inputFile = "./run/nrel5mw_dynamic/bd_primary_nrel_5mw_dynamic.inp";
 
         // Set the time steps and the number of time steps
-        bd[k]->dt        = 1e-3;
-        bd[k]->nt        = 100;
+        bd[k]->dt        = 5e-2;
+        bd[k]->nt        = 30;
         bd[k]->t         = 0;
         
         // Set the rotation speed and the gravity constrains
@@ -158,6 +158,7 @@ int main(int argc, char *argv[])
             bd[k]->domega[i]    = 0.0;
             bd[k]->gravity[i]   = 0.0;
         }
+        bd[k]->omega[0] = -1.0;
 
         // Set the position vector, the global orientation and the initial root orientation
         bd[k]->GlbRotBladeT0 = 1;
