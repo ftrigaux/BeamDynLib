@@ -77,6 +77,9 @@ bd.f_solve.restype  = None
 bd.f_getDisplacement.argtypes = [ND_POINTER_2,ND_POINTER_2,ND_POINTER_2, ct.c_int]
 bd.f_getDisplacement.restype  = None
 
+bd.f_setBC.argtypes = [ct.c_int,ND_ARRAY_3,ND_ARRAY_3]
+bd.f_setBC.restype  = None
+
 # ---- Wrap the functions in Python ----
 def opt(dt,ftype):
     if dt is not None:
@@ -138,6 +141,7 @@ if __name__ == "__main__":
     DynamicSolve = 1
     
     omega=np.array([-1,0,0],order='F')
+    GlbPos = np.array([0,0,1.5],order='F')
     
     theta = 0*np.pi/180;
     grav  = np.array([0,0,0],order='F');
@@ -145,7 +149,7 @@ if __name__ == "__main__":
     RootOri = np.array([[ 1, 0           , 0           ],
                          [ 0, np.cos(theta),-np.sin(theta)],
                          [ 0, np.sin(theta), np.cos(theta)]]);
-    nxL, nxD = py_initBeamDyn(nBeam, inputFile, idxBeam, nt=nt_loc, dt=dt_loc, omega=omega, DynamicSolve=DynamicSolve, gravity=grav, RootOri=RootOri, GlbRotBladeT0=GlbRotBladeT0)
+    nxL, nxD = py_initBeamDyn(nBeam, inputFile, idxBeam, nt=nt_loc, dt=dt_loc, GlbPos=GlbPos, omega=omega, DynamicSolve=DynamicSolve, gravity=grav, RootOri=RootOri, GlbRotBladeT0=GlbRotBladeT0)
 
     # Get the position of the distributed loads
     xLoads = np.zeros((3,nxL),order='F')
@@ -155,7 +159,7 @@ if __name__ == "__main__":
     # Set the loads
     loads = np.zeros((6,nxL),order='F');
     loads[0,:] = 1e4;
-    bd.f_setLoads(NP_F_2D(loads),1)
+    bd.f_setLoads(NP_F_2D(loads),idxBeam)
     
     # Preallocate variables to extract displacement
     t = np.linspace(dt_loc*nt_loc,(nt+1)*dt_loc*nt_loc,nt)
@@ -170,10 +174,11 @@ if __name__ == "__main__":
     # Solve the dynamic
     plt.figure(1)
     for i in range(nt):
-        bd.f_solve(1)
+        bd.f_setBC(idxBeam,NP_F_3(omega),NP_F_3(np.zeros(3,order='F')))
+        bd.f_solve(idxBeam)
     
         # Preallocate variables to extract displacement
-        bd.f_getDisplacement(NP_F_2D(x),NP_F_2D(u),NP_F_2D(du),1)
+        bd.f_getDisplacement(NP_F_2D(x),NP_F_2D(u),NP_F_2D(du),idxBeam)
         
         plt.plot(x[2,:],u[0,:],'.-r')
         plt.plot(x[2,:],u[1,:],'.-g')
@@ -191,7 +196,7 @@ if __name__ == "__main__":
     plt.plot(x[2,-1]+vdirc[2,:],u[0,-1]+vdirc[0,:],'k--');
     
     # Free the data
-    bd.f_freeBeamDyn(1,1)
+    bd.f_freeBeamDyn(idxBeam,idxBeam==nBeam)
     
     plt.figure(2)
     plt.plot(t,vtip[0,:],'r');

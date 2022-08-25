@@ -128,6 +128,6 @@ void f_solve(int);
 
 void f_getDisplacement(double**,double**,double**,int);
 
-void f_setBC(int);
+void f_setBC(int, double[3], double[3]);
 
 #endif

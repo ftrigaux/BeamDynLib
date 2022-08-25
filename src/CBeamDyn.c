@@ -101,7 +101,7 @@ void BD_getDisplacement(BD_Data *bd)
 
 void BD_setBC(BD_Data *bd)
 {
-    f_setBC(bd->idx);
+    f_setBC(bd->idx, bd->omega, bd->domega);
 }
 
 void BD_writeSolToBin(BD_Data *bd, char* fileName)
@@ -111,7 +111,7 @@ void BD_writeSolToBin(BD_Data *bd, char* fileName)
     char fname[128];
     sprintf(fname,"%s.bin",fileName);
 
-    fid = fopen(fname,"ab");  // r for read, b for binary
+    fid = fopen(fname,"ab");
     if (fid==NULL)
     {
         printf("Unable to open file %s to write the solution of the structural analysis\n",fileName);
@@ -130,9 +130,11 @@ int main(int argc, char *argv[])
 
     BD_Data **bd;
     int i,j,k;
+    int nt_glob;
     clock_t start_t, end_t;
 
-    int nBeam = 3;
+    int nBeam = 1;
+    nt_glob   = 30;
 
     bd = (BD_Data**) malloc(nBeam*sizeof(BD_Data*));
     
@@ -149,7 +151,7 @@ int main(int argc, char *argv[])
 
         // Set the time steps and the number of time steps
         bd[k]->dt        = 5e-2;
-        bd[k]->nt        = 30;
+        bd[k]->nt        = 1;
         bd[k]->t         = 0;
         
         // Set the rotation speed and the gravity constrains
@@ -174,6 +176,7 @@ int main(int argc, char *argv[])
                 }
             }
         }
+        bd[k]->GlbPos[2]    = 1.5;
 
         BD_initBeamDyn(bd[k]);
 
@@ -198,12 +201,16 @@ int main(int argc, char *argv[])
         BD_setLoads(bd[k]);
         printf("Done!\n");
         
-        start_t = clock();
-        BD_solve(bd[k]);
-        end_t = clock();
-        printf("Done solving in %1.3e seconds!\n",(double)(end_t - start_t) / CLOCKS_PER_SEC);
+        for (i=0;i<nt_glob;i++){
+            start_t = clock();
+            bd[k]->omega[0] = -1.0;
+            BD_setBC(bd[k]);
+            BD_solve(bd[k]);
+            end_t = clock();
+            printf("Done solving in %1.3e seconds!\n",(double)(end_t - start_t) / CLOCKS_PER_SEC);
 
-        BD_getDisplacement(bd[k]);
+            BD_getDisplacement(bd[k]);
+        }
         printf("Done!\n");
     }
 

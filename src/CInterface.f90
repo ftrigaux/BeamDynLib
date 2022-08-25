@@ -173,31 +173,16 @@ MODULE CInterface
     END SUBROUTINE getDisplacement
 
     ! This function should be used before every "solve" to set the orientation and displacement of the root
-    SUBROUTINE setBC(idxBeam)  BIND(C,NAME="f_setBC")
+    SUBROUTINE setBC(idxBeam,            &
+                     omega, domega)  BIND(C,NAME="f_setBC")
 
         INTEGER(C_INT),INTENT(IN),VALUE :: idxBeam
 
-        !sth = sin( theta )
-        !cth = cos( theta )
-        !
-        !Orientation(1,1) =   cth
-        !Orientation(2,1) =   -sth
-        !Orientation(3,1) =   0.0_R8Ki
-        !
-        !Orientation(1,2) = sth
-        !Orientation(2,2) = cth
-        !Orientation(3,2) = 0.0_R8Ki
-        !
-        !Orientation(1,3) = 0.0_R8Ki
-        !Orientation(2,3) = 0.0_R8Ki
-        !Orientation(3,3) = 1.0_R8Ki
-        !
-        !BD_UsrData(idxBeam)%RotationCenter%TranslationDisp(:,1)   = 0.0_ReKi
-        !BD_UsrData(idxBeam)%RotationCenter%Orientation(:,:,1)     = matmul(Orientation, matmul(BD_UsrData(idxBeam)%RotationCenter%RefOrientation(:,:,1),BD_UsrData(idxBeam)%RootRelInit))
-        !BD_UsrData(idxBeam)%RotationCenter%TranslationVel(:,1)    = 0.0_ReKi
-        !BD_UsrData(idxBeam)%RotationCenter%RotationVel(:,1)       = BD_UsrData(idxBeam)%BD_InitInput%RootVel(4:6)
-        !BD_UsrData(idxBeam)%RotationCenter%TranslationAcc(:,1)    = 0.0_ReKi
-        !BD_UsrData(idxBeam)%RotationCenter%RotationAcc(:,1)       = 0.0_ReKi
+        REAL(KIND=C_DOUBLE)         :: omega(3)
+        REAL(KIND=C_DOUBLE)         :: dOmega(3)
+
+        BD_UsrData(idxBeam)%omega(1:3)  = omega(1:3);
+        BD_UsrData(idxBeam)%dOmega(1:3) = dOmega(1:3);
 
     END SUBROUTINE setBC
 
