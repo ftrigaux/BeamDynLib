@@ -227,6 +227,8 @@ int main(int argc, char *argv[])
     free(bd);
 
     printf("Done! :) \n\n");
+
+    return(EXIT_SUCCESS);
 }
 
 /* Get the rotation matrix from the internal Wiener-Milenkovic parameters of GEBT. 
