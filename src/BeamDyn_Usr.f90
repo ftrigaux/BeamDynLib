@@ -523,13 +523,11 @@ MODULE BeamDyn_Usr
 
          u(4:6,i)  = temp_vec;
 
-         ! Velocities are expressed in the global/local frame
-         ! Local frame vector
-         du(1:3,i) = MATMUL(usr%BD_Output%BldMotion%Orientation(:,:,i), usr%BD_Output%BldMotion%TranslationVel(:,i))
-         du(4:6,i) = MATMUL(usr%BD_Output%BldMotion%Orientation(:,:,i), usr%BD_Output%BldMotion%RotationVel(:,i))
-         ! 
-         du(1:3,i) = usr%BD_Output%BldMotion%TranslationVel(1:3,i);
-         du(4:6,i) = usr%BD_Output%BldMotion%RotationVel(1:3,i);
+         ! Velocities are expressed in the blade root frame [r]
+         ! du = (Rotation of the blade) * [TranslationVel - omega(r0+r)]
+         d         = usr%BD_Output%BldMotion%Position(:, i) + usr%BD_Output%BldMotion%TranslationDisp(:, i)
+         du(1:3,i) = MATMUL(usr%BD_Input(1)%RootMotion%Orientation(:,:,1), usr%BD_Output%BldMotion%TranslationVel(:,i) - cross_product(usr%BD_Input(1)%RootMotion%RotationVel(:,1),d))
+         du(4:6,i) = MATMUL(usr%BD_Input(1)%RootMotion%Orientation(:,:,1), usr%BD_Output%BldMotion%RotationVel(:,i))
       ENDDO
 
    END SUBROUTINE BeamDyn_C_GetDisp

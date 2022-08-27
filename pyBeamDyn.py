@@ -203,3 +203,17 @@ if __name__ == "__main__":
     plt.plot(t,vtip[1,:],'g');
     plt.plot(t,vtip[2,:],'b');
     plt.grid(True);
+
+
+    # Estimation of the velocity based on the blade positions
+    vtest = (vtip[:,1:] - vtip[:,:-1])/(np.outer(np.ones(3),t[1:]-t[:-1]));
+    tmean = (t[1:]+t[:-1])/2.0
+    
+    plt.figure(3)
+    plt.plot(t,vvtip[0,:],'r');
+    plt.plot(tmean,vtest[0,:],'r--');
+    plt.plot(t,vvtip[1,:],'g');
+    plt.plot(tmean,vtest[1,:],'g--');
+    plt.plot(t,vvtip[2,:],'b');
+    plt.plot(tmean,vtest[2,:],'b--');
+    plt.grid(True);
