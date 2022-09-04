@@ -15,8 +15,6 @@ import numpy  as np
 import ctypes as ct
 import matplotlib.pyplot as plt
 
-plt.close('all')
-
 # import the shared library
 bd = ct.CDLL('/Users/ftrigaux/Documents/Beams/BeamDynLib/libBeamDyn.so') 
 
@@ -130,6 +128,7 @@ def getRotationMatrix(c):
 
 # Main function
 if __name__ == "__main__":
+    plt.close('all')
     # Initialize BeamDyn
     nBeam      = 1
     idxBeam    = 1
@@ -162,7 +161,7 @@ if __name__ == "__main__":
     bd.f_setLoads(NP_F_2D(loads),idxBeam)
     
     # Preallocate variables to extract displacement
-    t = np.linspace(dt_loc*nt_loc,(nt+1)*dt_loc*nt_loc,nt)
+    t = np.linspace(dt_loc*nt_loc,nt*dt_loc*nt_loc,nt)
     
     x  = np.zeros((3,nxD),order='F');
     u  = np.zeros((6,nxD),order='F');
