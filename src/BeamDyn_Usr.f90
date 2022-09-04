@@ -50,7 +50,7 @@ MODULE BeamDyn_Usr
       REAL(DbKi)     :: omega(3)           ! Angular velocity vector
       REAL(DbKi)     :: dOmega(3)          ! Angular acceleration vector
 
-      REAL(DbKi),DIMENSION(:,:), ALLOCATABLE         :: loads    ! Forces and moment at the node positions; Size(NNodes,6)
+      REAL(ReKi),DIMENSION(:,:), ALLOCATABLE         :: loads    ! Forces and moment at the node positions; Size(NNodes,6)
       REAL(DbKi)                                     :: grav(3)  ! Gravity vector
 
       !REAL(DbKi),DIMENSION(:,:), ALLOCATABLE         :: u        ! Displacement variables (u,v,w,phi,th1,th2); Size(NNodes,6)
@@ -175,6 +175,8 @@ MODULE BeamDyn_Usr
       CALL BDuser_InitRotationCenterMesh(usr)
          CALL CheckError(usr)
 
+      CALL initUsrData(usr)
+
       ! 
       ! CALL CreateMultiPointMeshes(DvrData,BD_InitInput,BD_InitOutput,BD_Parameter, BD_Output, BD_Input(1), ErrStat, ErrMsg)   
       ! CALL Transfer_MultipointLoads(DvrData, BD_Output, BD_Input(1), ErrStat, ErrMsg)   
@@ -199,8 +201,6 @@ MODULE BeamDyn_Usr
          CALL BDUsr_InputSolve(usr,j)
             CALL CheckError(usr)
       END DO
-
-      CALL initUsrData(usr)
 
 
    END SUBROUTINE BeamDyn_C_Init
@@ -471,23 +471,28 @@ MODULE BeamDyn_Usr
       usr%nxD = usr%BD_Output%BldMotion%NNodes
       usr%nxL = usr%BD_Input(1)%DistrLoad%Nnodes
 
+      ALLOCATE(usr%loads(6,usr%nxL))
+      usr%loads(:,:) = 0.0_ReKi
+
    END SUBROUTINE initUsrData
 
    SUBROUTINE freeUsrData(usr)
       TYPE(BD_UsrDataType) :: usr
       
       CALL MeshDestroy(usr%RotationCenter, ErrStat, ErrMsg);
+      IF (ALLOCATED(usr%loads)) THEN
+         DEALLOCATE(usr%loads)
+      ENDIF
    END SUBROUTINE freeUsrData
 
 
    SUBROUTINE BeamDyn_C_SetLoads(usr,loads)
-      TYPE(BD_UsrDataType) :: usr
-      REAL(R8Ki),INTENT(IN) :: loads(:,:)
+      TYPE(BD_UsrDataType)             :: usr
+      REAL(ReKi),INTENT(IN)            :: loads(:,:)
       INTEGER(IntKi)                   :: k
 
       DO k=1,usr%nxL
-         usr%BD_Input(1)%DistrLoad%Force(:,k) =  loads(1:3,k)
-         usr%BD_Input(1)%DistrLoad%Moment(:,k)=  loads(4:6,k)
+         usr%loads(1:6,k) = loads(1:6,k)
       ENDDO
 
    END SUBROUTINE BeamDyn_C_SetLoads
@@ -672,6 +677,8 @@ SUBROUTINE BDUsr_InputSolve(usr,i)
    REAL(R8Ki)                                 :: Orientation(3,3)
    REAL(DbKi)                                 :: dt,w,theta,omega(3)          ! time from start start of simulation multiplied by magnitude of rotational velocity
    REAL(DbKi)                                 :: dOri(3,3)
+
+   INTEGER(IntKi)                             :: j
    
    integer(intKi)                             :: ErrStat2         ! temporary Error status
    character(ErrMsgLen)                       :: ErrMsg2          ! temporary Error message
@@ -725,10 +732,10 @@ SUBROUTINE BDUsr_InputSolve(usr,i)
    !.............................
    ! LINE2 mesh: DistrLoad
    !.............................
-   ! DO i=1,u%DistrLoad%NNodes
-   !    u%DistrLoad%Force(:,i) =  DvrData%DistrLoad(1:3)
-   !    u%DistrLoad%Moment(:,i)=  DvrData%DistrLoad(4:6)
-   ! ENDDO
+   DO j=1,usr%BD_Input(i)%DistrLoad%NNodes
+      usr%BD_Input(i)%DistrLoad%Force(:,j) =  MATMUL(TRANSPOSE(Orientation), usr%loads(1:3,j))
+      usr%BD_Input(i)%DistrLoad%Moment(:,j)=  MATMUL(TRANSPOSE(Orientation), usr%loads(4:6,j))
+   ENDDO
 
 END SUBROUTINE BDUsr_InputSolve
 

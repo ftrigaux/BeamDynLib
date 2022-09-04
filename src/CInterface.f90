@@ -121,10 +121,10 @@ MODULE CInterface
 
     SUBROUTINE setLoads(loads,idxBeam) BIND(C,NAME="f_setLoads")
         IMPLICIT NONE
-        TYPE(C_PTR),INTENT(IN)         :: loads       ! coordinates for key points
+        TYPE(C_PTR),INTENT(IN)         :: loads       ! loads in the blade root frame [r] (i.e. the loads rotate with the blade)
         INTEGER(C_INT),INTENT(IN),VALUE:: idxBeam
 
-        REAL(R8Ki), POINTER          :: f_loads(:,:)
+        REAL(ReKi), POINTER          :: f_loads(:,:)
         CALL c_f_pointer(loads,f_loads, [6,BD_UsrData%nxL])
         CALL BeamDyn_C_setLoads(BD_UsrData(idxBeam),f_loads)
 
