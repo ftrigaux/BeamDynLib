@@ -213,10 +213,12 @@ MODULE BeamDynLib_CBind
 
 
     ! This function reads a restart file
-    SUBROUTINE readRestartFile(nBeam, restartFile)  BIND(C,NAME="f_readRestartFile")
+    SUBROUTINE readRestartFile(nBeam, restartFile, t, nt)  BIND(C,NAME="f_readRestartFile")
 
-        INTEGER(KIND=C_INT), INTENT(IN), VALUE              :: nBeam
-        CHARACTER(C_CHAR),   INTENT(IN)                     :: restartFile(*)
+        INTEGER(KIND=C_INT),  INTENT(IN), VALUE              :: nBeam
+        CHARACTER(C_CHAR),    INTENT(IN)                     :: restartFile(*)
+        REAL(KIND=C_DOUBLE),  INTENT(OUT)                    :: t
+        INTEGER(KIND=C_INT),  INTENT(OUT)                    :: nt
 
         INTEGER(IntKi)         :: j, nBeamLoc
         CHARACTER(1024)        :: FRestartFile
@@ -244,6 +246,9 @@ MODULE BeamDynLib_CBind
             BD_UsrData(j)%t  = BD_UsrData(1)%t
             BD_UsrData(j)%nt = BD_UsrData(1)%nt
         END DO
+
+        t  = REAL(BD_UsrData(1)%t, C_DOUBLE)
+        nt = REAL(BD_UsrData(1)%nt, C_INT)
         
 
     END SUBROUTINE readRestartFile

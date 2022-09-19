@@ -125,6 +125,60 @@ void BD_writeSolToBin(BD_Data *bd, char* fileName)
     fclose(fid);
 }
 
+void BD_writeRestartFile(int nBeam, char* fileName)
+{
+    f_writeRestartFile(nBeam, fileName);
+}
+
+void BD_readRestartFile(BD_Data *bd, char* fileName)
+{
+    f_readRestartFile(bd->nBeam, fileName, &bd->t, &bd->nt);
+}
+
+/* Get the rotation matrix from the internal Wiener-Milenkovic parameters of GEBT. 
+*/
+void BD_getRotationMatrix(double out[][3], double c[3])
+{
+    double c0,fac;
+    c0 = 2.0 - (c[0]*c[0] + c[1]*c[1] + c[2]*c[2])/8.0;
+    fac = 1.0/(4.0-c0)/(4.0-c0);
+
+    out[0][0] =  fac * (c0*c0 + c[0]*c[0] - c[1]*c[1] - c[2]*c[2]);
+    out[0][1] =  fac * (2*(c[0]*c[1] + c0*c[2]));
+    out[0][2] =  fac * (2*(c[0]*c[2]-c0*c[1]));
+    out[1][0] =  fac * (2*(c[0]*c[1] - c0*c[2]));
+    out[1][1] =  fac * (c0*c0 - c[0]*c[0] + c[1]*c[1] - c[2]*c[2]);
+    out[1][2] =  fac * (2*(c[1]*c[2] + c0*c[0]));
+    out[2][0] =  fac * (2*(c[0]*c[2] + c0*c[1]));
+    out[2][1] =  fac * (2*(c[1]*c[2] - c0*c[0]));
+    out[2][2] =  fac * (c0*c0 - c[0]*c[0] - c[1]*c[1] + c[2]*c[2]);
+
+    
+    double c1,c2,c3,tr0;
+    c1  = c[0]/4.0;
+    c2  = c[1]/4.0;
+    c3  = c[2]/4.0;
+    c0  = 0.5 * (1.0-c1*c1-c2*c2-c3*c3);     // 1/4 the value of the the AIAA paper (after plugging in c1, c2, c3 conversions)
+
+
+    tr0 = 1.0 - c0;                          // This is 1/4 the value of the AIAA paper, after converting c0.
+    tr0 = 2.0/(tr0*tr0);                     // this is 32x the equivalent term from the AIAA paper.   This is well behaved and won't go to zero.
+
+    // The following terms can be shown to match the transpose of the DCM given in the AIAA paper.
+    out[0][0] = tr0*(c1*c1 + c0*c0) - 1.0;
+    out[1][0] = tr0*(c1*c2 + c0*c3);
+    out[2][0] = tr0*(c1*c3 - c0*c2);
+
+    out[0][1] = tr0*(c1*c2 - c0*c3);
+    out[1][1] = tr0*(c2*c2 + c0*c0) - 1.0;
+    out[2][1] = tr0*(c2*c3 + c0*c1);
+
+    out[0][2] = tr0*(c1*c3 + c0*c2);
+    out[1][2] = tr0*(c2*c3 - c0*c1);
+    out[2][2] = tr0*(c3*c3 + c0*c0) - 1.0;
+
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -187,12 +241,11 @@ int main(int argc, char *argv[])
         printf("nxD = %d \n",bd[k]->nxD);
         printf("nxL = %d \n",bd[k]->nxL);
 
-        if (irun==1)
-        {
-            BD_readRestartFile(nBeam,"Checkpoint");
-        }
-
         BD_getPositions(bd[k]);
+    }
+    if (irun==1)
+    {
+        BD_readRestartFile(bd[0],"Checkpoint");
     }
 
     for (k=0;k<nBeam;k++)
@@ -243,62 +296,3 @@ int main(int argc, char *argv[])
 
     return(EXIT_SUCCESS);
 }
-
-void BD_writeRestartFile(int nBeam, char* fileName)
-{
-    f_writeRestartFile(nBeam, fileName);
-}
-
-void BD_readRestartFile(int nBeam, char* fileName)
-{
-    f_readRestartFile(nBeam, fileName);
-}
-
-/* Get the rotation matrix from the internal Wiener-Milenkovic parameters of GEBT. 
-*/
-void BD_getRotationMatrix(double out[][3], double c[3])
-{
-    double c0,fac;
-    c0 = 2.0 - (c[0]*c[0] + c[1]*c[1] + c[2]*c[2])/8.0;
-    fac = 1.0/(4.0-c0)/(4.0-c0);
-
-    out[0][0] =  fac * (c0*c0 + c[0]*c[0] - c[1]*c[1] - c[2]*c[2]);
-    out[0][1] =  fac * (2*(c[0]*c[1] + c0*c[2]));
-    out[0][2] =  fac * (2*(c[0]*c[2]-c0*c[1]));
-    out[1][0] =  fac * (2*(c[0]*c[1] - c0*c[2]));
-    out[1][1] =  fac * (c0*c0 - c[0]*c[0] + c[1]*c[1] - c[2]*c[2]);
-    out[1][2] =  fac * (2*(c[1]*c[2] + c0*c[0]));
-    out[2][0] =  fac * (2*(c[0]*c[2] + c0*c[1]));
-    out[2][1] =  fac * (2*(c[1]*c[2] - c0*c[0]));
-    out[2][2] =  fac * (c0*c0 - c[0]*c[0] - c[1]*c[1] + c[2]*c[2]);
-
-    
-    double c1,c2,c3,tr0;
-    c1  = c[0]/4.0;
-    c2  = c[1]/4.0;
-    c3  = c[2]/4.0;
-    c0  = 0.5 * (1.0-c1*c1-c2*c2-c3*c3);     // 1/4 the value of the the AIAA paper (after plugging in c1, c2, c3 conversions)
-
-
-    tr0 = 1.0 - c0;                          // This is 1/4 the value of the AIAA paper, after converting c0.
-    tr0 = 2.0/(tr0*tr0);                     // this is 32x the equivalent term from the AIAA paper.   This is well behaved and won't go to zero.
-
-    // The following terms can be shown to match the transpose of the DCM given in the AIAA paper.
-    out[0][0] = tr0*(c1*c1 + c0*c0) - 1.0;
-    out[1][0] = tr0*(c1*c2 + c0*c3);
-    out[2][0] = tr0*(c1*c3 - c0*c2);
-
-    out[0][1] = tr0*(c1*c2 - c0*c3);
-    out[1][1] = tr0*(c2*c2 + c0*c0) - 1.0;
-    out[2][1] = tr0*(c2*c3 + c0*c1);
-
-    out[0][2] = tr0*(c1*c3 + c0*c2);
-    out[1][2] = tr0*(c2*c3 - c0*c1);
-    out[2][2] = tr0*(c3*c3 + c0*c0) - 1.0;
-
-}
-
-
-void f_writeRestartFile(int, char*);
-
-void f_readRestartFile(int,  char*);
