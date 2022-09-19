@@ -8,3 +8,4 @@ run/nrel5mw_dynamic/bd_dvr*
 u.bin
 *.log
 __pycache__
+**.chkp

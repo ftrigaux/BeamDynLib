@@ -129,16 +129,19 @@ int main(int argc, char *argv[])
 {
 
     BD_Data **bd;
-    int i,j,k;
+    int i,j,k,irun,nrun;
     int nt_glob;
     clock_t start_t, end_t;
 
     int nBeam = 1;
-    nt_glob   = 30;
+    nt_glob   = 20;
+    nrun      = 1;
+
 
     bd = (BD_Data**) malloc(nBeam*sizeof(BD_Data*));
     
-
+    for (irun=0; irun<nrun;irun++)
+    {
     for (k=0;k<nBeam;k++)
     {
         bd[k] = (BD_Data*) malloc(sizeof(BD_Data));
@@ -160,7 +163,8 @@ int main(int argc, char *argv[])
             bd[k]->domega[i]    = 0.0;
             bd[k]->gravity[i]   = 0.0;
         }
-        bd[k]->omega[0] = -1.0;
+        bd[k]->omega[0]   = -1.0;
+        bd[k]->gravity[2] = -9.81;
 
         // Set the position vector, the global orientation and the initial root orientation
         bd[k]->GlbRotBladeT0 = 1;
@@ -183,6 +187,11 @@ int main(int argc, char *argv[])
         printf("nxD = %d \n",bd[k]->nxD);
         printf("nxL = %d \n",bd[k]->nxL);
 
+        if (irun==1)
+        {
+            BD_readRestartFile(nBeam,"Checkpoint");
+        }
+
         BD_getPositions(bd[k]);
     }
 
@@ -193,6 +202,7 @@ int main(int argc, char *argv[])
             for (j=0; j<bd[k]->nxL;j++)
             {
                 bd[k]->loads[i][j] = 0.0;
+                bd[k]->loads[0][j] = 1e3;
             }
         }
     
@@ -207,23 +217,16 @@ int main(int argc, char *argv[])
             BD_setBC(bd[k]);
             BD_solve(bd[k]);
             end_t = clock();
-            printf("Done solving in %1.3e seconds!\n",(double)(end_t - start_t) / CLOCKS_PER_SEC);
+            //printf("Done solving in %1.3e seconds!\n",(double)(end_t - start_t) / CLOCKS_PER_SEC);
 
             BD_getDisplacement(bd[k]);
+            printf("Done solving! at t = %1.3f, Tip displacement =  %f %f %f\n",bd[k]->t,bd[k]->u[0][bd[k]->nxD-1],bd[k]->u[1][bd[k]->nxD-1],bd[k]->u[2][bd[k]->nxD-1]);
         }
+
+        BD_writeRestartFile(bd[0]->nBeam,"Checkpoint");
         printf("Done!\n");
     }
-
-    FILE *fid;
-
-    fid = fopen("u.bin","wb");  // r for read, b for binary
-
-    for (i=0;i<6;i++){
-        
-        fwrite(bd[0]->u[i],sizeof(double),bd[0]->nxD,fid);
-    }
-
-    fclose(fid);
+    
 
     printf("Deallocating...\n");
 
@@ -232,11 +235,23 @@ int main(int argc, char *argv[])
         BD_freeBeamDyn(bd[k],k==nBeam-1);
         free(bd[k]);
     }
+    }
     free(bd);
+    
 
     printf("Done! :) \n\n");
 
     return(EXIT_SUCCESS);
+}
+
+void BD_writeRestartFile(int nBeam, char* fileName)
+{
+    f_writeRestartFile(nBeam, fileName);
+}
+
+void BD_readRestartFile(int nBeam, char* fileName)
+{
+    f_readRestartFile(nBeam, fileName);
 }
 
 /* Get the rotation matrix from the internal Wiener-Milenkovic parameters of GEBT. 
@@ -282,3 +297,8 @@ void BD_getRotationMatrix(double out[][3], double c[3])
     out[2][2] = tr0*(c3*c3 + c0*c0) - 1.0;
 
 }
+
+
+void f_writeRestartFile(int, char*);
+
+void f_readRestartFile(int,  char*);

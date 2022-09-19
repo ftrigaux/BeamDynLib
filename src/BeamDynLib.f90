@@ -16,68 +16,14 @@
 ! limitations under the License.
 !
 !**********************************************************************************************************************************
-MODULE BeamDyn_Usr
+MODULE BeamDynLib
 
    !USE BeamDyn_driver_subs  ! all other modules inherited through this one
-   USE BeamDyn
-   USE BeamDyn_Subs
+   !USE BeamDyn
+   !USE BeamDyn_Subs
+   USE BeamDynLib_Types
 
    IMPLICIT NONE
-
-   !PUBLIC :: BeamDyn_C_Init
-   !PUBLIC :: BeamDyn_C_SetLoads
-   !PUBLIC :: BeamDyn_C_Solve
-   !PUBLIC :: BeamDyn_C_GetDisp
-   !PUBLIC :: BeamDyn_C_End
-
-   TYPE , PUBLIC :: BD_UsrDataType
-      LOGICAL        :: DynamicSolve  ! flag for dynamic or static solve (static:false)
-      LOGICAL        :: GlbRotBladeT0 ! Initial blade root orientation is also the GlbRot reference frame
-
-      INTEGER(IntKi)                          :: nxD,nxL;        ! Number of nodes for Displacement and Loads
-      !REAL(ReKi),DIMENSION(:,:), ALLOCATABLE  :: x;         ! Nodes coordinates
-
-      REAL(DbKi)     :: t             ! time
-      REAL(DbKi)     :: dt            ! time increment
-      INTEGER(IntKi) :: nt            ! number of substep
-      
-      REAL(DbKi)     :: GlbPos(3)        ! Initial vector position 
-      REAL(DbKi)     :: RootOri(3,3)     ! DCM of the initial root orientation
-      REAL(DbKi)     :: GlbRot(3,3)      ! 
-      REAL(DbKi)     :: RootRelInit(3,3)
-
-      REAL(DbKi)     :: orientation(3,3)   ! Orientation angles
-      REAL(DbKi)     :: omega(3)           ! Angular velocity vector
-      REAL(DbKi)     :: dOmega(3)          ! Angular acceleration vector
-
-      REAL(ReKi),DIMENSION(:,:), ALLOCATABLE         :: loads    ! Forces and moment at the node positions; Size(NNodes,6)
-      REAL(DbKi)                                     :: grav(3)  ! Gravity vector
-
-      !REAL(DbKi),DIMENSION(:,:), ALLOCATABLE         :: u        ! Displacement variables (u,v,w,phi,th1,th2); Size(NNodes,6)
-      !REAL(DbKi),DIMENSION(:,:), ALLOCATABLE         :: du       ! Velocity variables d(u,v,w,phi,th1,th2)/dt; Size(NNodes,6)
-
-      CHARACTER(1024)  :: InputFile      !< Name of the input file; remove if there is no file [-]
-
-      ! Contains the variables for the BeamDyn Analysis
-      TYPE(BD_InitInputType)           :: BD_InitInput
-      TYPE(BD_ParameterType)           :: BD_Parameter
-      TYPE(BD_ContinuousStateType)     :: BD_ContinuousState
-      TYPE(BD_InitOutputType)          :: BD_InitOutput
-      TYPE(BD_DiscreteStateType)       :: BD_DiscreteState
-      TYPE(BD_ConstraintStateType)     :: BD_ConstraintState
-      TYPE(BD_OtherStateType)          :: BD_OtherState
-      TYPE(BD_MiscVarType)             :: BD_MiscVar
-      TYPE(BD_InputType) ,ALLOCATABLE  :: BD_Input(:)
-      REAL(DbKi),         ALLOCATABLE  :: BD_InputTimes(:)
-      TYPE(BD_OutputType)              :: BD_Output
-      !INTEGER(IntKi)                   :: DvrOut 
-
-      ! Private variables used inside BeamDyn code
-      REAL(R8Ki)                                    :: w           ! magnitude of rotational velocity vector
-      TYPE(MeshType)                                :: RotationCenter
-      TYPE(MeshMapType)                             :: Map_RotationCenter_to_RootMotion
-
-   END TYPE
 
    ! global glue-code-specific variables
 
@@ -613,8 +559,6 @@ SUBROUTINE BDuser_InitRotationCenterMesh(usr)
    
    
    position = 0.0_ReKi  ! center of rotation
-
-   usr%w = TwoNorm( usr%BD_InitInput%RootVel(4:6) )
    
    call eye(orientation, ErrStat2, ErrMsg2) ! new version
    
@@ -765,4 +709,4 @@ SUBROUTINE BDUsr_UpdateOrientation(usr)
 
 END SUBROUTINE
 
-END MODULE BeamDyn_Usr
+END MODULE BeamDynLib

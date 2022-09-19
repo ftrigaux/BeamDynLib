@@ -102,14 +102,14 @@ NETLIB_SOURCES=             \
 VERSION_SOURCES =	\
 	VersionInfo.f90		
 
-BD_SOURCES   =           \
+BD_SOURCES   =            \
 	BeamDyn.f90           \
 	BeamDyn_IO.f90        \
 	BeamDyn_Subs.f90      \
-	BeamDyn_Usr.f90       \
 	BeamDyn_Types.f90     \
-	CInterface.f90        \
-	#BeamDyn_Program.f90
+	BeamDynLib_Types.f90  \
+	BeamDynLib.f90        \
+	BeamDynLib_CBind.f90 
 
 vpath %.f90 $(LIB_DIR) $(NETLIB_DIR) $(VERSION_DIR) $(BD_DIR)
 vpath %.mod $(INTER_DIR)
@@ -191,6 +191,10 @@ $(DEST_DIR)/$(OUTPUT_NAME)$(EXE_EXT): $(ALL_OBJS) $(OBJC) | $(INTER_DIR)
 lib: $(ALL_OBJS) $(OBJC) | $(INTER_DIR)
 	$(FC) $(LDFLAGS) -I $(INTER_DIR) -shared -o $(DEST_DIR)/lib$(OUTPUT_NAME).so \
 	$(foreach src, $(ALL_OBJS), $(addprefix $(INTER_DIR)/,$(src))) obj/CBeamDyn.o $(LAPACK_LINK)
+
+fprog: $(ALL_OBJS) BeamDynLib_Program.obj $(OBJC) | $(INTER_DIR)
+	$(FC) $(LDFLAGS) -I $(INTER_DIR) -o $(DEST_DIR)/$(OUTPUT_NAME)$(EXE_EXT) \
+	$(foreach src, $(ALL_OBJS), $(addprefix $(INTER_DIR)/,$(src))) $(INTER_DIR)/BeamDynLib_Program.obj $(LAPACK_LINK)
 
 install:
 	ln -sf `pwd`/$(DEST_DIR)/lib$(OUTPUT_NAME).so $(INSTALL_DIR)/lib/
