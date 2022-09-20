@@ -2,7 +2,7 @@ import numpy  as np
 import matplotlib.pyplot as plt
 
 from beam3D_NU_v2 import createBeamFromCSV
-import pyBeamDyn as pbd
+from pyBeamDyn import PyBeamDyn
 
 
 plt.close('all')
@@ -50,25 +50,21 @@ print("Done solving using PBEAMS");
 #%% ---- Solve the Dynamic Problem with BeamDyn -- python version -----
 nBeam      = 1
 inputFile  = "/Users/ftrigaux/Documents/Beams/BeamDynLib/run/nrel5mw_dynamic/bd_primary_nrel_5mw_dynamic.inp"
-nxL, nxD = pbd.py_initBeamDyn(1,inputFile,1,nt=1,dt=dt,omega=-np.array([0.0,0,0],order='F'),DynamicSolve=1)
+
+pbd = PyBeamDyn()
+pbd.initBeamDyn(1,inputFile,1,nt=1,dt=dt,omega=-np.array([0.0,0,0],order='F'),DynamicSolve=1)
 
 # Get the position of the distributed loads
-xLoads = np.zeros((3,nxL),order='F')
-xDisp  = np.zeros((3,nxD),order='F')
-pbd.bd.f_getPositions(pbd.NP_F_2D(xLoads),pbd.NP_F_2D(xDisp))
+xLoads, xDisp = pbd.getPositions()
 
 # Set the loads
-loads = np.zeros((6,nxL),order='F');
+loads = np.zeros((6,pbd.nxLoads),order='F');
 loads[0,:] = q1 * (xLoads[2,:]-1)/61.5;
 loads[1,:] = q2 * (xLoads[2,:]-1)/61.5;
 loads[5,:] = to * (xLoads[2,:]-1)/61.5;
-pbd.bd.f_setLoads(pbd.NP_F_2D(loads),1)
+pbd.setLoads(loads,1)
 
 # Preallocate variables to extract displacement
-x  = np.zeros((3,nxD),order='F');
-u  = np.zeros((6,nxD),order='F');
-du = np.zeros((6,nxD),order='F'); 
-
 vtip      = np.zeros(nt)
 dvtip     = np.zeros(nt)
 wtip      = np.zeros(nt)
@@ -76,17 +72,17 @@ ptip      = np.zeros(nt)
     
 # Solve the dynamic
 for i in range(nt):
-    pbd.bd.f_solve(1)
+    pbd.solve(1)
     
     # Preallocate variables to extract displacement
-    pbd.bd.f_getDisplacement(pbd.NP_F_2D(x),pbd.NP_F_2D(u),pbd.NP_F_2D(du),1)
+    x,u,du = pbd.getDisplacement(1)
     vtip[i]  =  u[0,-1];
     wtip[i]  =  u[1,-1];
     dvtip[i] = du[0,-1];
     ptip[i]  =  u[5,-1];
 
 # Free the data
-pbd.bd.f_freeBeamDyn(1,1)
+pbd.freeBeamDyn(1,1)
 
 plt.figure(1)
 plt.plot(t,vtip,'--',c='r');

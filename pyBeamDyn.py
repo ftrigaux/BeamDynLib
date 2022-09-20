@@ -15,9 +15,6 @@ import numpy  as np
 import ctypes as ct
 import matplotlib.pyplot as plt
 
-# import the shared library
-bd = ct.CDLL('/Users/ftrigaux/Documents/Beams/BeamDynLib/libBeamDyn.so') 
-
 # Define some custom types
 ND_POINTER_1 = ct.POINTER(ct.c_double);
 ND_POINTER_2 = ct.POINTER(ct.POINTER(ct.c_double));
@@ -48,36 +45,6 @@ def NP_F_3x3(array):
             a[i][j] = array[i][j]
     return a
 
-# Specify args and result type for each function
-bd.f_initBeamDyn.argtypes = [ct.c_int,ct.c_char_p,ct.c_int,
-                             ct.POINTER(ct.c_double),ct.POINTER(ct.c_int),ct.POINTER(ct.c_double),
-                             ct.POINTER(ct.c_int),
-                             ND_ARRAY_3,ND_ARRAY_3,ND_ARRAY_3,
-                             ND_ARRAY_3,ct.POINTER(ct.c_int),ND_ARRAY_3x3,ND_ARRAY_3x3,
-                             ct.POINTER(ct.c_int), ct.POINTER(ct.c_int)]
-bd.f_initBeamDyn.restype  = None
-
-bd.f_refresh.argtypes = [ct.c_int, ct.POINTER(ct.c_double),ct.POINTER(ct.c_int),ct.POINTER(ct.c_double)]
-bd.f_refresh.restype  = None
-
-bd.f_getPositions.argtypes = [ND_POINTER_2,ND_POINTER_2]
-bd.f_getPositions.restype  = None
-
-bd.f_freeBeamDyn.argtypes = [ct.c_int,ct.c_int]
-bd.f_freeBeamDyn.restype  = None
-
-bd.f_setLoads.argtypes = [ND_POINTER_2, ct.c_int]
-bd.f_setLoads.restype  = None
-
-bd.f_solve.argtypes = [ct.c_int]
-bd.f_solve.restype  = None
-
-bd.f_getDisplacement.argtypes = [ND_POINTER_2,ND_POINTER_2,ND_POINTER_2, ct.c_int]
-bd.f_getDisplacement.restype  = None
-
-bd.f_setBC.argtypes = [ct.c_int,ND_ARRAY_3,ND_ARRAY_3]
-bd.f_setBC.restype  = None
-
 # ---- Wrap the functions in Python ----
 def opt(dt,ftype):
     if dt is not None:
@@ -89,42 +56,109 @@ def opt(dt,ftype):
             return NP_F_3x3(dt)
     else:
         return None
+
+# Specify args and result type for each function
+
+class PyBeamDyn(ct.CDLL):
+
+    def __init__(self):
+        super().__init__('/Users/ftrigaux/Documents/Beams/BeamDynLib/libBeamDyn.so')
+        self.f_initBeamDyn.argtypes = [ct.c_int,ct.c_char_p,ct.c_int,
+                                    ct.POINTER(ct.c_double),ct.POINTER(ct.c_int),ct.POINTER(ct.c_double),
+                                    ct.POINTER(ct.c_int),
+                                    ND_ARRAY_3,ND_ARRAY_3,ND_ARRAY_3,
+                                    ND_ARRAY_3,ct.POINTER(ct.c_int),ND_ARRAY_3x3,ND_ARRAY_3x3,
+                                    ct.POINTER(ct.c_int), ct.POINTER(ct.c_int)]
+        self.f_initBeamDyn.restype  = None
+
+        self.f_refresh.argtypes = [ct.c_int, ct.POINTER(ct.c_double),ct.POINTER(ct.c_int),ct.POINTER(ct.c_double)]
+        self.f_refresh.restype  = None
+
+        self.f_getPositions.argtypes = [ND_POINTER_2,ND_POINTER_2]
+        self.f_getPositions.restype  = None
+
+        self.f_freeBeamDyn.argtypes = [ct.c_int,ct.c_int]
+        self.f_freeBeamDyn.restype  = None
+
+        self.f_setLoads.argtypes = [ND_POINTER_2, ct.c_int]
+        self.f_setLoads.restype  = None
+
+        self.f_solve.argtypes = [ct.c_int]
+        self.f_solve.restype  = None
+
+        self.f_getDisplacement.argtypes = [ND_POINTER_2,ND_POINTER_2,ND_POINTER_2, ct.c_int]
+        self.f_getDisplacement.restype  = None
+
+        self.f_setBC.argtypes = [ct.c_int,ND_ARRAY_3,ND_ARRAY_3]
+        self.f_setBC.restype  = None
+
+        self.nxLoads = -1;
+        self.nxDisp  = -1;
     
-def py_initBeamDyn(nBeam,inputFile,idxBeam,dt=None,nt=None,t=None,DynamicSolve=None,omega=None,domega=None,gravity=None,GlbPos=None, GlbRotBladeT0=None, GlbRot=None, RootOri=None):
-    nxLoads = ct.c_int(0); nxDisp = ct.c_int(0);
-    bd.f_initBeamDyn(nBeam,inputFile.encode('utf-8'),idxBeam,opt(dt,ct.c_double),opt(nt,ct.c_int),opt(t,ct.c_double),opt(DynamicSolve,ct.c_int),opt(omega,ct.c_double),opt(domega,ct.c_double),opt(gravity,ct.c_double),opt(GlbPos,ct.c_double),opt(GlbRotBladeT0,ct.c_int),opt(GlbRot,ct.c_double),opt(RootOri,ct.c_double),ct.byref(nxLoads),ct.byref(nxDisp))
-    return nxLoads.value, nxDisp.value
+    def initBeamDyn(self,nBeam,inputFile,idxBeam,dt=None,nt=None,t=None,DynamicSolve=None,omega=None,domega=None,gravity=None,GlbPos=None, GlbRotBladeT0=None, GlbRot=None, RootOri=None):
+        nxLoads = ct.c_int(0); nxDisp = ct.c_int(0);
+        self.f_initBeamDyn(nBeam,inputFile.encode('utf-8'),idxBeam,opt(dt,ct.c_double),opt(nt,ct.c_int),opt(t,ct.c_double),opt(DynamicSolve,ct.c_int),opt(omega,ct.c_double),opt(domega,ct.c_double),opt(gravity,ct.c_double),opt(GlbPos,ct.c_double),opt(GlbRotBladeT0,ct.c_int),opt(GlbRot,ct.c_double),opt(RootOri,ct.c_double),ct.byref(nxLoads),ct.byref(nxDisp))
+        self.nxLoads = nxLoads.value;
+        self.nxDisp  = nxDisp.value;
+        return nxLoads.value, nxDisp.value
 
-def py_refresh(idxBeam,dt=None,nt=None,t=None,omega=None,domega=None):
-    nxLoads = ct.c_int(0); nxDisp = ct.c_int(0);
-    bd.f_refresh(idxBeam,opt(dt,ct.c_double),opt(nt,ct.c_int),opt(t,ct.c_double));
-    return nxLoads.value, nxDisp.value
+    def refresh(self,idxBeam,dt=None,nt=None,t=None,omega=None,domega=None):
+        nxLoads = ct.c_int(0); nxDisp = ct.c_int(0);
+        self.f_refresh(idxBeam,opt(dt,ct.c_double),opt(nt,ct.c_int),opt(t,ct.c_double));
+        self.nxLoads = nxLoads.value;
+        self.nxDisp  = nxDisp.value;
+        return nxLoads.value, nxDisp.value
 
-def getRotationMatrix(c):
-    c1  = c[0]/4.0;
-    c2  = c[1]/4.0;
-    c3  = c[2]/4.0;
-    c0  = 0.5 * (1.0-c1*c1-c2*c2-c3*c3);     # 1/4 the value of the the AIAA paper (after plugging in c1, c2, c3 conversions)
+    def getPositions(self):
+        xLoads = np.zeros((3,self.nxLoads),order='F')
+        xDisp  = np.zeros((3,self.nxDisp),order='F')
+        self.f_getPositions(NP_F_2D(np.asfortranarray(xLoads)),NP_F_2D(np.asfortranarray(xDisp)))
+        return xLoads, xDisp
+
+    def setLoads(self,loads,idxBeam):
+        self.f_setLoads(NP_F_2D(np.asfortranarray(loads)),idxBeam)
+
+    def setBC(self,idxBeam,omega,dOmega):
+        self.f_setBC(idxBeam,NP_F_3(omega),NP_F_3(dOmega))
+
+    def getDisplacement(self,idxBeam):
+        x  = np.zeros((3,self.nxDisp),order='F');
+        u  = np.zeros((6,self.nxDisp),order='F');
+        du = np.zeros((6,self.nxDisp),order='F'); 
+        self.f_getDisplacement(NP_F_2D(x),NP_F_2D(u),NP_F_2D(du),idxBeam)
+        return x,u,du
+
+    def solve(self,idxBeam):
+        self.f_solve(idxBeam)
+
+    def freeBeamDyn(self,idxBeam,nBeam):
+        self.f_freeBeamDyn(idxBeam,idxBeam==nBeam)
+
+    def getRotationMatrix(self,c):
+        c1  = c[0]/4.0;
+        c2  = c[1]/4.0;
+        c3  = c[2]/4.0;
+        c0  = 0.5 * (1.0-c1*c1-c2*c2-c3*c3);     # 1/4 the value of the the AIAA paper (after plugging in c1, c2, c3 conversions)
 
 
-    tr0 = 1.0 - c0;                          # This is 1/4 the value of the AIAA paper, after converting c0.
-    tr0 = 2.0/(tr0*tr0);                     # This is 32x the equivalent term from the AIAA paper.   This is well behaved and won't go to zero.
+        tr0 = 1.0 - c0;                          # This is 1/4 the value of the AIAA paper, after converting c0.
+        tr0 = 2.0/(tr0*tr0);                     # This is 32x the equivalent term from the AIAA paper.   This is well behaved and won't go to zero.
 
-    # The following terms can be shown to match the transpose of the DCM given in the AIAA paper.
-    Rot = np.zeros((3,3));
-    Rot[0,0] = tr0*(c1*c1 + c0*c0) - 1.0;
-    Rot[1,0] = tr0*(c1*c2 + c0*c3);
-    Rot[2,0] = tr0*(c1*c3 - c0*c2);
+        # The following terms can be shown to match the transpose of the DCM given in the AIAA paper.
+        Rot = np.zeros((3,3));
+        Rot[0,0] = tr0*(c1*c1 + c0*c0) - 1.0;
+        Rot[1,0] = tr0*(c1*c2 + c0*c3);
+        Rot[2,0] = tr0*(c1*c3 - c0*c2);
 
-    Rot[0,1] = tr0*(c1*c2 - c0*c3);
-    Rot[1,1] = tr0*(c2*c2 + c0*c0) - 1.0;
-    Rot[2,1] = tr0*(c2*c3 + c0*c1);
+        Rot[0,1] = tr0*(c1*c2 - c0*c3);
+        Rot[1,1] = tr0*(c2*c2 + c0*c0) - 1.0;
+        Rot[2,1] = tr0*(c2*c3 + c0*c1);
 
-    Rot[0,2] = tr0*(c1*c3 + c0*c2);
-    Rot[1,2] = tr0*(c2*c3 - c0*c1);
-    Rot[2,2] = tr0*(c3*c3 + c0*c0) - 1.0;
-    
-    return Rot;
+        Rot[0,2] = tr0*(c1*c3 + c0*c2);
+        Rot[1,2] = tr0*(c2*c3 - c0*c1);
+        Rot[2,2] = tr0*(c3*c3 + c0*c0) - 1.0;
+        
+        return Rot;
 
 # Main function
 if __name__ == "__main__":
@@ -139,33 +173,30 @@ if __name__ == "__main__":
     
     DynamicSolve = 1
     
-    omega=np.array([-1,0,0],order='F')
-    GlbPos = np.array([0,0,1.5],order='F')
+    omega=np.array([-1,0,0])
+    GlbPos = np.array([0,0,1.5])
     
     theta = 0*np.pi/180;
-    grav  = np.array([0,0,0],order='F');
+    grav  = np.array([0,0,0]);
     GlbRotBladeT0 = 1;
     RootOri = np.array([[ 1, 0           , 0           ],
                          [ 0, np.cos(theta),-np.sin(theta)],
                          [ 0, np.sin(theta), np.cos(theta)]]);
-    nxL, nxD = py_initBeamDyn(nBeam, inputFile, idxBeam, nt=nt_loc, dt=dt_loc, GlbPos=GlbPos, omega=omega, DynamicSolve=DynamicSolve, gravity=grav, RootOri=RootOri, GlbRotBladeT0=GlbRotBladeT0)
+    
+    pbd = PyBeamDyn();
+
+    pbd.initBeamDyn(nBeam, inputFile, idxBeam, nt=nt_loc, dt=dt_loc, GlbPos=GlbPos, omega=omega, DynamicSolve=DynamicSolve, gravity=grav, RootOri=RootOri, GlbRotBladeT0=GlbRotBladeT0)
 
     # Get the position of the distributed loads
-    xLoads = np.zeros((3,nxL),order='F')
-    xDisp  = np.zeros((3,nxD),order='F')
-    bd.f_getPositions(NP_F_2D(xLoads),NP_F_2D(xDisp))
+    xLoads, xDisp = pbd.getPositions()
 
     # Set the loads
-    loads = np.zeros((6,nxL),order='F');
+    loads = np.zeros((6,pbd.nxLoads));
     loads[0,:] = 1e4;
-    bd.f_setLoads(NP_F_2D(loads),idxBeam)
+    pbd.setLoads(loads,idxBeam)
     
     # Preallocate variables to extract displacement
     t = np.linspace(dt_loc*nt_loc,nt*dt_loc*nt_loc,nt)
-    
-    x  = np.zeros((3,nxD),order='F');
-    u  = np.zeros((6,nxD),order='F');
-    du = np.zeros((6,nxD),order='F'); 
 
     vtip      = np.zeros((3,nt))
     vvtip     = np.zeros((3,nt))
@@ -173,11 +204,11 @@ if __name__ == "__main__":
     # Solve the dynamic
     plt.figure(1)
     for i in range(nt):
-        bd.f_setBC(idxBeam,NP_F_3(omega),NP_F_3(np.zeros(3,order='F')))
-        bd.f_solve(idxBeam)
+        pbd.setBC(idxBeam,omega,np.zeros(3))
+        pbd.solve(idxBeam)
     
         # Preallocate variables to extract displacement
-        bd.f_getDisplacement(NP_F_2D(x),NP_F_2D(u),NP_F_2D(du),idxBeam)
+        x,u,du = pbd.getDisplacement(idxBeam)
         
         plt.plot(x[2,:],u[0,:],'.-r')
         plt.plot(x[2,:],u[1,:],'.-g')
@@ -188,14 +219,14 @@ if __name__ == "__main__":
     
     # Get Rotation matrix 
     c = u[3:,-1]
-    Rot = getRotationMatrix(c);
+    Rot = pbd.getRotationMatrix(c);
     print(Rot);
     vdir = np.array([[0,0,0],[0,0.0,0.1]]).T * x[2,-1];
     vdirc = Rot @ vdir
     plt.plot(x[2,-1]+vdirc[2,:],u[0,-1]+vdirc[0,:],'k--');
     
     # Free the data
-    bd.f_freeBeamDyn(idxBeam,idxBeam==nBeam)
+    pbd.freeBeamDyn(idxBeam,idxBeam==nBeam)
     
     plt.figure(2)
     plt.plot(t,vtip[0,:],'r');
