@@ -1293,7 +1293,7 @@ SUBROUTINE BD_CreateCheckpoint_T(t_initial, n_t_global, NumBeams, BD_Data, Check
    REAL(DbKi),               INTENT(IN   ) :: t_initial           !< initial time
    INTEGER(IntKi),           INTENT(IN   ) :: n_t_global          !< loop counter
    INTEGER(IntKi),           INTENT(IN   ) :: NumBeams         !< Number of turbines in this simulation
-   TYPE(BD_UsrDataType),     INTENT(INOUT) :: BD_Data(:)             !< all data for one instance of a turbine (INTENT(OUT) only because of hack for Bladed DLL)
+   TYPE(BD_UsrDataType),     INTENT(INOUT) :: BD_Data             !< all data for one instance of a turbine (INTENT(OUT) only because of hack for Bladed DLL)
    CHARACTER(*),             INTENT(IN   ) :: CheckpointRoot      !< Rootname of checkpoint file
    INTEGER(IntKi),           INTENT(  OUT) :: ErrStat          !< Error status of the operation
    CHARACTER(*),             INTENT(  OUT) :: ErrMsg           !< Error message if ErrStat /= ErrID_None
@@ -1349,10 +1349,8 @@ SUBROUTINE BD_CreateCheckpoint_T(t_initial, n_t_global, NumBeams, BD_Data, Check
 
    END IF
 
-   DO iBeam=1,NumBeams
-
       ! Get the arrays of data to be stored in the output file
-    CALL BD_PackBeamDyn_Data( ReKiBuf, DbKiBuf, IntKiBuf, BD_Data(iBeam), ErrStat2, ErrMsg2 )
+    CALL BD_PackBeamDyn_Data( ReKiBuf, DbKiBuf, IntKiBuf, BD_Data, ErrStat2, ErrMsg2 )
         CALL SetErrStat(ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
         if (ErrStat >= AbortErrLev ) then
             call cleanup()
@@ -1377,9 +1375,7 @@ SUBROUTINE BD_CreateCheckpoint_T(t_initial, n_t_global, NumBeams, BD_Data, Check
    IF ( ALLOCATED(DbKiBuf)  ) DEALLOCATE(DbKiBuf)
    IF ( ALLOCATED(IntKiBuf) ) DEALLOCATE(IntKiBuf)
 
-   WRITE (unOut, IOSTAT=ErrStat2)   BD_Data(iBeam)%orientation
-
-   END DO
+   WRITE (unOut, IOSTAT=ErrStat2)   BD_Data%orientation
 
    CLOSE(unOut)
    unOut = -1
@@ -1408,7 +1404,7 @@ SUBROUTINE BD_RestoreFromCheckpoint_T(t_initial, n_t_global, NumBeams, BD_Data, 
    REAL(DbKi),               INTENT(INOUT) :: t_initial           !< initial time
    INTEGER(IntKi),           INTENT(INOUT) :: n_t_global          !< loop counter
    INTEGER(IntKi),           INTENT(INOUT) :: NumBeams            !< Number of turbines in this simulation
-   TYPE(BD_UsrDataType),     INTENT(INOUT) :: BD_Data(:)          !< all data for one instance of a beam (bjj: note that is intent INOUT instead of OUT only because of a gfortran compiler memory issue)
+   TYPE(BD_UsrDataType),     INTENT(INOUT) :: BD_Data          !< all data for one instance of a beam (bjj: note that is intent INOUT instead of OUT only because of a gfortran compiler memory issue)
    CHARACTER(*),             INTENT(IN   ) :: CheckpointRoot      !< Rootname of checkpoint file
    INTEGER(IntKi),           INTENT(  OUT) :: ErrStat          !< Error status of the operation
    CHARACTER(*),             INTENT(  OUT) :: ErrMsg           !< Error message if ErrStat /= ErrID_None
@@ -1493,11 +1489,12 @@ SUBROUTINE BD_RestoreFromCheckpoint_T(t_initial, n_t_global, NumBeams, BD_Data, 
 
       ! Put the arrays back in the data types
    IF (ErrStat < AbortErrLev) THEN
-      CALL BD_UnPackBeamDyn_Data( ReKiBuf, DbKiBuf, IntKiBuf, BD_Data(iBeam), ErrStat2, ErrMsg2 )
+      CALL BD_UnPackBeamDyn_Data( ReKiBuf, DbKiBuf, IntKiBuf, BD_Data, ErrStat2, ErrMsg2 )
          CALL SetErrStat(ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
    END IF
 
-   READ (unIn, IOSTAT=ErrStat2)   BD_Data(iBeam)%orientation
+   READ (unIn, IOSTAT=ErrStat2)   BD_Data%orientation
+   write(*,*) "orientation = ",BD_Data%orientation
 
    END DO
 

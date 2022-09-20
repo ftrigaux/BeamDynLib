@@ -188,9 +188,9 @@ MODULE BeamDynLib_CBind
 
 
      ! This function writes a restart file
-    SUBROUTINE writeRestartFile(nBeam, restartFile)  BIND(C,NAME="f_writeRestartFile")
+    SUBROUTINE writeRestartFile(idxBeam, restartFile)  BIND(C,NAME="f_writeRestartFile")
 
-        INTEGER(KIND=C_INT), INTENT(IN), VALUE           :: nBeam
+        INTEGER(KIND=C_INT), INTENT(IN), VALUE           :: idxBeam
         CHARACTER(C_CHAR),   INTENT(IN)                  :: restartFile(*)
 
         INTEGER(IntKi)         :: j
@@ -206,28 +206,23 @@ MODULE BeamDynLib_CBind
         FRestartFile = TRIM(FRestartFile)
 
         ! Create the file
-        CALL BD_CreateCheckpoint_T(BD_UsrData(1)%t,BD_UsrData(1)%nt,nBeam,BD_UsrData,FRestartFile,ErrStat,ErrMsg)
+        CALL BD_CreateCheckpoint_T(BD_UsrData(idxBeam)%t,BD_UsrData(idxBeam)%nt,1,BD_UsrData(idxBeam),FRestartFile,ErrStat,ErrMsg)
+        CALL CheckError(BD_UsrData(idxBeam), ErrStat, ErrMsg, "during restart writing")
         
 
     END SUBROUTINE writeRestartFile
 
 
     ! This function reads a restart file
-    SUBROUTINE readRestartFile(nBeam, restartFile, t, nt)  BIND(C,NAME="f_readRestartFile")
+    SUBROUTINE readRestartFile(idxBeam, restartFile, t, nt)  BIND(C,NAME="f_readRestartFile")
 
-        INTEGER(KIND=C_INT),  INTENT(IN), VALUE              :: nBeam
+        INTEGER(KIND=C_INT),  INTENT(IN), VALUE              :: idxBeam
         CHARACTER(C_CHAR),    INTENT(IN)                     :: restartFile(*)
         REAL(KIND=C_DOUBLE),  INTENT(OUT)                    :: t
         INTEGER(KIND=C_INT),  INTENT(OUT)                    :: nt
 
-        INTEGER(IntKi)         :: j, nBeamLoc
+        INTEGER(IntKi)         :: j,nBeamLoc
         CHARACTER(1024)        :: FRestartFile
-
-        WRITE(*,*) "Reading restart file"
-        IF (nBeam .ne. SIZE(BD_UsrData)) THEN
-            WRITE(*, '(/,A,I0,A,I0)') "The number of beams to restart is ",nBeam,", but the number of beams allocated is ",SIZE(BD_UsrData)
-            CALL ProgAbort("Error in readRestartFile() arguments: cannot restart");
-        ENDIF
 
         ! Read the restart file name from C 
         j=1
@@ -239,16 +234,11 @@ MODULE BeamDynLib_CBind
         FRestartFile = TRIM(FRestartFile)
 
         ! Read the file
-        nBeamLoc = nBeam
-        CALL BD_RestoreFromCheckpoint_T(BD_UsrData(1)%t,BD_UsrData(1)%nt,nBeamLoc,BD_UsrData,FRestartFile,ErrStat,ErrMsg)
+        CALL BD_RestoreFromCheckpoint_T(BD_UsrData(idxBeam)%t,BD_UsrData(idxBeam)%nt,nBeamLoc,BD_UsrData(idxBeam),FRestartFile,ErrStat,ErrMsg)
+        CALL CheckError(BD_UsrData(idxBeam), ErrStat, ErrMsg, "during restart initialization")
 
-        DO j=1,nBeam
-            BD_UsrData(j)%t  = BD_UsrData(1)%t
-            BD_UsrData(j)%nt = BD_UsrData(1)%nt
-        END DO
-
-        t  = REAL(BD_UsrData(1)%t, C_DOUBLE)
-        nt = REAL(BD_UsrData(1)%nt, C_INT)
+        t  = REAL(BD_UsrData(idxBeam)%t, C_DOUBLE)
+        nt = REAL(BD_UsrData(idxBeam)%nt, C_INT)
         
 
     END SUBROUTINE readRestartFile

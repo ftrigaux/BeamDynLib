@@ -86,9 +86,8 @@ MODULE BeamDynLib
       !CALL GET_COMMAND_ARGUMENT(1,DvrInputFile)
       !CALL GetRoot(DvrInputFile,RootName)
       !CALL BD_ReadDvrFile(DvrInputFile,dt_global,BD_InitInput,DvrData,ErrStat,ErrMsg)
-      !   CALL CheckError(usr)
       CALL BD_initFromUsrData(usr);
-      CALL CheckError(usr)
+      CALL CheckError(usr,ErrStat,ErrMsg,"during BD_initFromUsrData() function of BeamDyn")
 
       !Module1: allocate Input and Output arrays; used for interpolation and extrapolation
       ALLOCATE(usr%BD_Input(BD_interp_order + 1)) 
@@ -107,7 +106,7 @@ MODULE BeamDynLib
                      , usr%BD_InitOutput       &
                      , ErrStat             &
                      , ErrMsg )
-         CALL CheckError(usr)
+         CALL CheckError(usr,ErrStat,ErrMsg,"during BD_Init() function of BeamDyn")
       
          ! If the Quasi-Static solve is in use, rerun the initialization with loads at t=0 
          ! (HACK: set in the driver only because computing Jacobians with this option [as in FAST glue code] is problematic)
@@ -119,7 +118,7 @@ MODULE BeamDynLib
       usr%BD_Input(1)%RootMotion%Orientation(1:3,1:3,1) = usr%RootRelInit
          
       CALL BDuser_InitRotationCenterMesh(usr)
-         CALL CheckError(usr)
+         CALL CheckError(usr,ErrStat,ErrMsg,"during BDuser_InitRotationCenterMesh() function of BeamDyn")
 
       CALL initUsrData(usr)
 
@@ -128,7 +127,7 @@ MODULE BeamDynLib
       ! CALL Transfer_MultipointLoads(DvrData, BD_Output, BD_Input(1), ErrStat, ErrMsg)   
       
       ! CALL Dvr_InitializeOutputFile(DvrOut,BD_InitOutput,RootName,ErrStat,ErrMsg)
-      !   CALL CheckError(usr)
+      !   CALL CheckError(usr,usr)
 
          
          ! initialize BD_Input and BD_InputTimes
@@ -139,13 +138,13 @@ MODULE BeamDynLib
       DO j = 2,BD_interp_order+1
             ! create new meshes
          CALL BD_CopyInput (usr%BD_Input(1) , usr%BD_Input(j) , MESH_NEWCOPY, ErrStat, ErrMsg)
-            CALL CheckError(usr)
+            CALL CheckError(usr,ErrStat,ErrMsg,"during BD_CopyInput() function of BeamDyn")
             
             ! solve for inputs at previous time steps
          usr%BD_InputTimes(j) = usr%t - (j - 1) * usr%dt
          ! CALL BD_InputSolve( BD_InputTimes(j), BD_Input(j), DvrData, ErrStat, ErrMsg)
          CALL BDUsr_InputSolve(usr,j)
-            CALL CheckError(usr)
+            CALL CheckError(usr,ErrStat,ErrMsg,"during inputSolve() function of BeamDyn")
       END DO
 
 
@@ -163,7 +162,7 @@ MODULE BeamDynLib
       !.........................
    CALL BD_CalcOutput( usr%t, usr%BD_Input(1), usr%BD_Parameter, usr%BD_ContinuousState, usr%BD_DiscreteState, &
                            usr%BD_ConstraintState, usr%BD_OtherState,  usr%BD_Output, usr%BD_MiscVar, ErrStat, ErrMsg)
-      CALL CheckError(usr)
+      CALL CheckError(usr,ErrStat,ErrMsg,"during BD_CalcOutput() function of BeamDyn")
    
    ! CALL Dvr_WriteOutputLine(bd_usrdata%t,DvrOut,BD_Parameter%OutFmt,BD_Output)
    
@@ -177,7 +176,7 @@ MODULE BeamDynLib
       ! Shift "window" of BD_Input 
       DO j = BD_interp_order, 1, -1
          CALL BD_CopyInput (usr%BD_Input(j),  usr%BD_Input(j+1),  MESH_UPDATECOPY, Errstat, ErrMsg)
-            CALL CheckError(usr)
+            CALL CheckError(usr,ErrStat,ErrMsg,"during BD_CopyInput() function of BeamDyn")
          usr%BD_InputTimes(j+1) = usr%BD_InputTimes(j)
       END DO
       
@@ -185,7 +184,7 @@ MODULE BeamDynLib
       CALL BDUsr_UpdateOrientation(usr)
       !CALL BD_InputSolve( BD_InputTimes(1), BD_Input(1), DvrData, ErrStat, ErrMsg)
       CALL BDUsr_InputSolve(usr,1)
-         CALL CheckError(usr)
+         CALL CheckError(usr,ErrStat,ErrMsg,"during BD_InputSolve() function of BeamDyn")
       
                        
      IF(usr%BD_Parameter%analysis_type .EQ. BD_STATIC_ANALYSIS .AND. it > max_ld_step) EXIT
@@ -195,7 +194,7 @@ MODULE BeamDynLib
                                usr%BD_ContinuousState, &
                                usr%BD_DiscreteState, usr%BD_ConstraintState, &
                                usr%BD_OtherState, usr%BD_MiscVar, ErrStat, ErrMsg )
-        CALL CheckError(usr)
+        CALL CheckError(usr,ErrStat,ErrMsg,"during BD_UpdateStates() function of BeamDyn")
 
         
       ! advance time
@@ -204,7 +203,7 @@ MODULE BeamDynLib
       ! calculate outputs at n_t_global + 1
      CALL BD_CalcOutput( usr%t, usr%BD_Input(1), usr%BD_Parameter, usr%BD_ContinuousState, usr%BD_DiscreteState, &
                              usr%BD_ConstraintState, usr%BD_OtherState,  usr%BD_Output, usr%BD_MiscVar, ErrStat, ErrMsg)
-        CALL CheckError(usr)
+        CALL CheckError(usr,ErrStat,ErrMsg,"during BD_CalcOutput() function of BeamDyn")
 
      !CALL Dvr_WriteOutputLine(t_global,DvrOut,BD_Parameter%OutFmt,BD_Output)
 
@@ -260,19 +259,23 @@ MODULE BeamDynLib
 
    END SUBROUTINE BeamDyn_C_End
 
-   SUBROUTINE CheckError(usr)
-      TYPE(BD_UsrDataType) :: usr
+   SUBROUTINE CheckError(usr,ErrID,Msg,ErrLocMsg)
+      TYPE(BD_UsrDataType)                 :: usr 
+      INTEGER(IntKi), INTENT(IN)           :: ErrID       ! The error identifier (ErrStat)
+      CHARACTER(*),   INTENT(IN)           :: Msg         ! The error message (ErrMsg)
+      CHARACTER(*),   INTENT(IN), OPTIONAL :: ErrLocMsg   ! an optional message describing the location of the error
 
       if (ErrStat /= ErrID_None) then
          CALL WrScr(TRIM(ErrMsg))
          
          if (ErrStat >= AbortErrLev) then
             CALL BeamDyn_C_End(usr)
+            CALL ProgExit ( ErrStat )
          end if
       end if
          
    end SUBROUTINE CheckError
-
+ 
 
    ! Creates a mesh for the user distributed loads
    ! SUBROUTINE initUsrData(Pos,NNodes)

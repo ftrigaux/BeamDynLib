@@ -125,14 +125,14 @@ void BD_writeSolToBin(BD_Data *bd, char* fileName)
     fclose(fid);
 }
 
-void BD_writeRestartFile(int nBeam, char* fileName)
+void BD_writeRestartFile(BD_Data *bd, char fileName[])
 {
-    f_writeRestartFile(nBeam, fileName);
+    f_writeRestartFile(bd->idx, fileName);
 }
 
-void BD_readRestartFile(BD_Data *bd, char* fileName)
+void BD_readRestartFile(BD_Data *bd, char fileName[])
 {
-    f_readRestartFile(bd->nBeam, fileName, &bd->t, &bd->nt);
+    f_readRestartFile(bd->idx, fileName, &bd->t, &bd->nt);
 }
 
 /* Get the rotation matrix from the internal Wiener-Milenkovic parameters of GEBT. 
@@ -186,10 +186,11 @@ int main(int argc, char *argv[])
     int i,j,k,irun,nrun;
     int nt_glob;
     clock_t start_t, end_t;
+    char fName[128];
 
-    int nBeam = 1;
-    nt_glob   = 20;
-    nrun      = 1;
+    int nBeam = 3;
+    nt_glob   = 10;
+    nrun      = 2;
 
 
     bd = (BD_Data**) malloc(nBeam*sizeof(BD_Data*));
@@ -242,14 +243,13 @@ int main(int argc, char *argv[])
         printf("nxL = %d \n",bd[k]->nxL);
 
         BD_getPositions(bd[k]);
-    }
-    if (irun==1)
-    {
-        BD_readRestartFile(bd[0],"Checkpoint");
-    }
 
-    for (k=0;k<nBeam;k++)
-    {
+        if (irun==1)
+        {
+            sprintf(fName,"Checkpoint_b%d",k);
+            BD_readRestartFile(bd[k],fName);
+        }
+    
         for (i=0;i<6;i++)
         {
             for (j=0; j<bd[k]->nxL;j++)
@@ -276,7 +276,8 @@ int main(int argc, char *argv[])
             printf("Done solving! at t = %1.3f, Tip displacement =  %f %f %f\n",bd[k]->t,bd[k]->u[0][bd[k]->nxD-1],bd[k]->u[1][bd[k]->nxD-1],bd[k]->u[2][bd[k]->nxD-1]);
         }
 
-        BD_writeRestartFile(bd[0]->nBeam,"Checkpoint");
+        sprintf(fName,"Checkpoint_b%d",k);
+        BD_writeRestartFile(bd[k],fName);
         printf("Done!\n");
     }
     

@@ -109,9 +109,9 @@ void BD_setBC(BD_Data *bd);
 
 void BD_writeSolToBin(BD_Data *bd, char* fileName);
 
-void BD_writeRestartFile(int nBeam, char* fileName);
+void BD_writeRestartFile(BD_Data *bd, char fileName[]);
 
-void BD_readRestartFile(BD_Data *bd, char* fileName);
+void BD_readRestartFile(BD_Data *bd, char fileName[]);
 
 // Util functions
 void BD_getRotationMatrix(double Rot[][3], double c[3]);
