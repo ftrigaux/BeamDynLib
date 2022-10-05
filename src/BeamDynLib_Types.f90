@@ -1464,7 +1464,7 @@ SUBROUTINE BD_RestoreFromCheckpoint_T(t_initial, n_t_global, NumBeams, BD_Data, 
 
       ! in case the Turbine data structure isn't empty on entry of this routine:
    !call FAST_DestroyTurbineType( Turbine, ErrStat2, ErrMsg2 )
-    DO iBeam=1,NumBeams
+    !DO iBeam=1,NumBeams
       ! data from current time step:
    READ (unIn, IOSTAT=ErrStat2)   ArraySizes                       ! Number of reals, doubles, and integers written to file
 
@@ -1496,7 +1496,7 @@ SUBROUTINE BD_RestoreFromCheckpoint_T(t_initial, n_t_global, NumBeams, BD_Data, 
    READ (unIn, IOSTAT=ErrStat2)   BD_Data%orientation
    write(*,*) "orientation = ",BD_Data%orientation
 
-   END DO
+   !END DO
 
 
       ! close file if necessary (do this after unpacking turbine data, so that TurbID is set)
