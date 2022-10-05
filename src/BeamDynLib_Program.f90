@@ -41,7 +41,7 @@ PROGRAM BeamDynLib_Program
    BD_UsrData(iBeam)%omega(1)        = 1.0      ! Angular velocity vector
    BD_UsrData(iBeam)%grav(3)         = 9.0      ! Angular acceleration vector
 
-   BD_UsrData(iBeam)%InputFile = "./run/nrel5mw_dynamic/bd_primary_nrel_5mw_dynamic.inp"
+   BD_UsrData(iBeam)%InputFile = "./run/IEA15MW_dynamic/IEA-15-240-RWT_BeamDyn.dat"
 
    CALL BeamDyn_C_Init(BD_UsrData(iBeam))
 
@@ -68,7 +68,7 @@ PROGRAM BeamDynLib_Program
       print '("Run Time = ",f6.3," seconds. Tip displacement x-dir at t=",f6.3," [s] = ",f8.5," [m]")',t_end-t_start,BD_UsrData(iBeam)%t,u(1,BD_UsrData(iBeam)%nxD)
    END DO
 
-   write (fileName, "(A5,I2)") "Checkpoint_b", iBeam
+   write (fileName, "(A12,I1)") "Checkpoint_b", iBeam
 
    CALL BD_CreateCheckpoint_T(BD_UsrData(iBeam)%t,BD_UsrData(iBeam)%nt,nBeam,BD_UsrData(iBeam),fileName,ErrStat,ErrMsg)
 
@@ -113,11 +113,11 @@ PROGRAM BeamDynLib_Program
    BD_UsrData(iBeam)%omega(1)        = 1.0      ! Angular velocity vector
    BD_UsrData(iBeam)%grav(3)         = 9.0      ! Angular acceleration vector
 
-   BD_UsrData(iBeam)%InputFile = "./run/nrel5mw_dynamic/bd_primary_nrel_5mw_dynamic.inp"
+   BD_UsrData(iBeam)%InputFile = "./run/IEA15MW_dynamic/IEA-15-240-RWT_BeamDyn.dat"
 
    CALL BeamDyn_C_Init(BD_UsrData(iBeam))
 
-   write (fileName, "(A5,I2)") "Checkpoint_b", iBeam
+   write (fileName, "(A12,I1)") "Checkpoint_b", iBeam
    CALL BD_RestoreFromCheckpoint_T(BD_UsrData(iBeam)%t,BD_UsrData(iBeam)%nt,nBeam,BD_UsrData(iBeam),fileName,ErrStat,ErrMsg)
 
    ! Loads
