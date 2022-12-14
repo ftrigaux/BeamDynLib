@@ -6,11 +6,11 @@ from time import time
 
 from pyBeamDyn import PyBeamDyn
 
-plt.close('all')
+#plt.close('all')
 
 #%% ---- Definition of the dynamic problem  -----
-dt = 1e-2
-nt = 3000
+dt = 2e-2
+nt = 400
 q1 = 0.0
 q2 = 0.0
 to = 0.0
@@ -49,8 +49,10 @@ xLoads, xDisp = pbd.getPositions()
 
 # Set the loads
 loads = np.zeros((6,pbd.nxLoads));
-loads[0,:] = 0;
-# loads[1,:] = 800;
+#loads[0,:] = 5000;
+#loads[1,:] = 800;
+# loads[5,-1] = 5000;
+loads[5,:] = -5000;
 pbd.setLoads(loads,1)
 
 # Preallocate variables to extract displacement
@@ -66,9 +68,9 @@ rtip      = np.zeros(nt)
 print("Solving...");
 start = time()
 for i in range(nt):
-    # loads[0,:] =  Fx_t(t[i],(xLoads[2,:]+Rhub)/L)[:,0];
-    # loads[1,:] =  -Fy_t(t[i],(xLoads[2,:]+Rhub)/L)[:,0];
-    # pbd.setLoads(loads,1)
+    #loads[0,:] =  Fx_t(t[i],(xLoads[2,:]+Rhub)/L)[:,0];
+    #loads[1,:] =  -Fy_t(t[i],(xLoads[2,:]+Rhub)/L)[:,0];
+    #pbd.setLoads(loads,1)
     
     print(i)
     pbd.solve(1)
@@ -90,7 +92,7 @@ pbd.freeBeamDyn(1,1)
 #%%
 
 if DynamicSolve:
-    plt.figure()
+    plt.figure(1)
     t = np.linspace(dt,nt*dt*nt_loc,nt) * omega / 2.0 / np.pi;
     #plt.plot(t,utip,'--',c='r',label="Spanwise");
     plt.plot(t,vtip,'--',c='g',label="Flapwise");
@@ -100,7 +102,7 @@ if DynamicSolve:
     plt.legend()
     plt.ylabel("Tip displacement [m]")
     
-    plt.figure()
+    plt.figure(2)
     plt.plot(t,ptip*180.0/np.pi,'-',c='r');
     # plt.plot(t,qtip*180.0/np.pi,'-',c='g');
     # plt.plot(t,rtip*180.0/np.pi,'-',c='b');
@@ -111,18 +113,30 @@ if DynamicSolve:
     print("flapwise tip displacement  = %f"%(vtip[-1]))
     print("edgewise tip displacement  = %f"%(wtip[-1]))
     print("torsion  tip displacement  = %f"%(ptip[-1]))
-else:
-    plt.figure()
-    plt.plot(xDisp[2,:],u[0,:],'-',c='b',label='Flap');
-    plt.plot(xDisp[2,:],u[1,:],'-',c='r',label='Edge');
-    plt.xlabel('x');
-    plt.grid(True);
-    plt.ylabel('Displacement [m]');
-    plt.legend()
-    print("flapwise tip displacement  = %f"%(vtip[-1]))
-    print("edgewise tip displacement  = %f"%(wtip[-1]))
 
-plt.show()
+plt.figure(3)
+plt.plot(xDisp[2,:],u[0,:],'-',c='b',label='Flap');
+plt.plot(xDisp[2,:],u[1,:],'-',c='r',label='Edge');
+plt.xlabel('x');
+plt.grid(True);
+plt.ylabel('Displacement [m]');
+plt.legend()
+print("flapwise tip displacement  = %f"%(vtip[-1]))
+print("edgewise tip displacement  = %f"%(wtip[-1]))
+
+plt.figure(3)
+plt.plot(xDisp[2,:],u[5,:]*180/np.pi,'-',c='b',label='twist');
+plt.xlabel('x');
+plt.grid(True);
+plt.ylabel('twist [deg]');
+plt.legend()
+
+
+import scipy.fftpack
+yf = scipy.fftpack.fft(ptip)
+xf = scipy.fftpack.fftfreq(nt,d=dt)
+plt.figure()
+plt.plot(xf[:nt//2], 2.0/nt * np.abs(yf[:nt//2]))
 
 #%% Read output from CBeamDyn
 
