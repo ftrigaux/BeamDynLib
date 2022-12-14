@@ -20,7 +20,7 @@ PROGRAM BeamDynLib_Program
    BD_UsrData(iBeam)%nt = 10
    BD_UsrData(iBeam)%t  = 0.0
 
-   BD_UsrData(iBeam)%DynamicSolve   = .TRUE. ! flag for dynamic or static solve (static:false)
+   BD_UsrData(iBeam)%DynamicSolve   = .FALSE. ! flag for dynamic or static solve (static:false)
    BD_UsrData(iBeam)%GlbRotBladeT0  = .TRUE.! Initial blade root orientation is also the GlbRot reference frame
       
    BD_UsrData(iBeam)%GlbPos      = (/0.0, 0.0, 1.0/)       ! Initial vector position 

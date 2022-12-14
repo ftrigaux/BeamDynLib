@@ -9,3 +9,4 @@ u.bin
 *.log
 __pycache__
 **.chkp
+**.pdf

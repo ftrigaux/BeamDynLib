@@ -104,6 +104,7 @@ VERSION_SOURCES =	\
 
 BD_SOURCES   =            \
 	BeamDyn.f90           \
+	BeamDyn_BldNdOuts_IO.f90 \
 	BeamDyn_IO.f90        \
 	BeamDyn_Subs.f90      \
 	BeamDyn_Types.f90     \
@@ -140,7 +141,7 @@ default: $(INTER_DIR) $(DEST_DIR)/$(OUTPUT_NAME)$(EXE_EXT)
 NWTC_Base.obj:              SingPrec.obj
 $(SYS_FILE).obj:            NWTC_Base.obj
 NWTC_Library_Types.obj:     $(SYS_FILE).obj
-NWTC_IO.obj:                NWTC_Library_Types.obj
+NWTC_IO.obj:                NWTC_Library_Types.obj VersionInfo.obj
 NWTC_Num.obj:               NWTC_IO.obj
 ModMesh_Types.obj:          NWTC_Num.obj
 ModMesh.obj:                ModMesh_Types.obj
@@ -151,7 +152,7 @@ NWTC_LAPACK.obj:            NWTC_Base.obj
 
 BeamDyn_Types.obj:       NWTC_Library.obj  $(BD_DIR)/BeamDyn_Types.f90
 BeamDyn_Subs.obj:        BeamDyn_Types.obj
-BeamDyn_IO.obj:          BeamDyn_Types.obj  BeamDyn_Subs.obj
+BeamDyn_IO.obj:          BeamDyn_Types.obj  BeamDyn_Subs.obj BeamDyn_BldNdOuts_IO.obj
 BeamDyn.obj:             BeamDyn_IO.obj  BeamDyn_Subs.obj
 
 Driver_Beam_Subs.obj:   BeamDyn.obj NWTC_Library.obj
