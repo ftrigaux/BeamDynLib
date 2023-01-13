@@ -109,6 +109,14 @@ SUBROUTINE BD_Init( InitInp, u, p, x, xd, z, OtherState, y, MiscVar, Interval, I
 
    CALL DispNVD( BeamDyn_Ver )
 
+   WRITE(*,"(A,3F12.5)") "InitInp%GlbPos      ",InitInp%GlbPos
+   WRITE(*,"(A,9F12.5)") "InitInp%GlbRot      ",InitInp%GlbRot      
+   WRITE(*,"(A,3F12.5)") "InitInp%RootDisp    ",InitInp%RootDisp    
+   WRITE(*,"(A,9F12.5)") "InitInp%RootOri     ",InitInp%RootOri     
+   WRITE(*,"(A,3F12.5)") "InitInp%RootVel(1:3)",InitInp%RootVel(1:3)
+   WRITE(*,"(A,3F12.5)") "InitInp%RootVel(4:6)",InitInp%RootVel(4:6)
+
+
    CALL BD_ReadInput(InitInp%InputFile,InputFileData,InitInp%RootName,Interval,ErrStat2,ErrMsg2)
       CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
       if (ErrStat >= AbortErrLev) then
@@ -125,6 +133,7 @@ SUBROUTINE BD_Init( InitInp, u, p, x, xd, z, OtherState, y, MiscVar, Interval, I
 
 
       ! this routine sets *some* of the parameters (basically the "easy" ones)
+      p%UsePitchAct = InputFileData%UsePitchAct ! MUST be defined here because it is used in the list of output
    call SetParameters(InitInp, InputFileData, p, ErrStat2, ErrMsg2)
       CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
       if (ErrStat >= AbortErrLev) then

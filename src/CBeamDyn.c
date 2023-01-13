@@ -24,7 +24,7 @@ void BD_initBeamDyn(BD_Data *bd)
                 &bd->dt, &bd->nt, &bd->t,          
                 &bd->DynamicSolve,       
                 bd->omega, bd->domega, bd->gravity,      
-                bd->GlbPos, &bd->GlbRotBladeT0, bd->GlbRot, bd->RootOri,
+                bd->GlbPos, &bd->GlbRotBladeT0, bd->RootOri,
                 &bd->nxL, &bd->nxD);
 
     ALLOCATE2(bd->xLoads,double,3,bd->nxL);
@@ -51,11 +51,11 @@ void BD_refresh(BD_Data *bd)
 void BD_getPositions(BD_Data *bd)
 {
     RAVEL2(bd,xLoads,3,bd->nxL,double);
-    RAVEL2(bd,xDisp ,3,bd->nxL,double);
+    RAVEL2(bd,xDisp ,3,bd->nxD,double);
     f_getPositions(&rav_xLoads, &rav_xDisp);
 
     UNRAVEL2(bd,xLoads,3,bd->nxL,double);
-    UNRAVEL2(bd,xDisp ,3,bd->nxL,double);
+    UNRAVEL2(bd,xDisp ,3,bd->nxD,double);
 
 }
 
@@ -226,12 +226,10 @@ int main(int argc, char *argv[])
         for (i=0;i<3;i++){
             bd[k]->GlbPos[i]    = 0.0;
             for (j=0;j<3;j++){
-                bd[k]->GlbRot[i][j]  = 0;
-                bd[k]->RootOri[i][j] = 0;
+                bd[k]->RootOri[i][j] = 0.0;
                 if (i==j)
                 {
-                    bd[k]->GlbRot[i][j]  = 1;
-                    bd[k]->RootOri[i][j] = 1;
+                    bd[k]->RootOri[i][j] = 1.0;
                 }
             }
         }

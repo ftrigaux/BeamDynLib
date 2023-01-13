@@ -67,7 +67,7 @@ class PyBeamDyn(ct.CDLL):
                                     ct.POINTER(ct.c_double),ct.POINTER(ct.c_int),ct.POINTER(ct.c_double),
                                     ct.POINTER(ct.c_int),
                                     ND_ARRAY_3,ND_ARRAY_3,ND_ARRAY_3,
-                                    ND_ARRAY_3,ct.POINTER(ct.c_int),ND_ARRAY_3x3,ND_ARRAY_3x3,
+                                    ND_ARRAY_3,ct.POINTER(ct.c_int),ND_ARRAY_3x3,
                                     ct.POINTER(ct.c_int), ct.POINTER(ct.c_int)]
         self.f_initBeamDyn.restype  = None
 
@@ -96,8 +96,10 @@ class PyBeamDyn(ct.CDLL):
         self.nxDisp  = -1;
     
     def initBeamDyn(self,nBeam,inputFile,idxBeam,dt=None,nt=None,t=None,DynamicSolve=None,omega=None,domega=None,gravity=None,GlbPos=None, GlbRotBladeT0=None, GlbRot=None, RootOri=None):
+        if (GlbRot is not None):
+            print("!!! Warning : GlbRot is no more an input of BeamDyn !!! Use RootOri instead with GlbRotBladeT0=1 to test the global rotation matrix")
         nxLoads = ct.c_int(0); nxDisp = ct.c_int(0);
-        self.f_initBeamDyn(nBeam,inputFile.encode('utf-8'),idxBeam,opt(dt,ct.c_double),opt(nt,ct.c_int),opt(t,ct.c_double),opt(DynamicSolve,ct.c_int),opt(omega,ct.c_double),opt(domega,ct.c_double),opt(gravity,ct.c_double),opt(GlbPos,ct.c_double),opt(GlbRotBladeT0,ct.c_int),opt(GlbRot,ct.c_double),opt(RootOri,ct.c_double),ct.byref(nxLoads),ct.byref(nxDisp))
+        self.f_initBeamDyn(nBeam,inputFile.encode('utf-8'),idxBeam,opt(dt,ct.c_double),opt(nt,ct.c_int),opt(t,ct.c_double),opt(DynamicSolve,ct.c_int),opt(omega,ct.c_double),opt(domega,ct.c_double),opt(gravity,ct.c_double),opt(GlbPos,ct.c_double),opt(GlbRotBladeT0,ct.c_int),opt(RootOri,ct.c_double),ct.byref(nxLoads),ct.byref(nxDisp))
         self.nxLoads = nxLoads.value;
         self.nxDisp  = nxDisp.value;
         return nxLoads.value, nxDisp.value

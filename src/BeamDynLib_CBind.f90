@@ -18,7 +18,7 @@ MODULE BeamDynLib_CBind
                            dt, nt, t,                              &
                            DynamicSolve,                           &
                            omega, domega, gravity,                 &
-                           GlbPos, GlbRotBladeT0, GlbRot, RootOri, &
+                           GlbPos, GlbRotBladeT0, RootOri,         &
                            nxLoads, nxDisp) BIND(C,NAME="f_initBeamDyn")
 
         INTEGER(KIND=C_INT), INTENT(IN), VALUE           :: nBeam,idx
@@ -26,7 +26,7 @@ MODULE BeamDynLib_CBind
         REAL(KIND=C_DOUBLE), INTENT(IN), OPTIONAL        :: dt, t
         INTEGER(KIND=C_INT), INTENT(IN), OPTIONAL        :: nt, DynamicSolve, GlbRotBladeT0
         REAL(KIND=C_DOUBLE), INTENT(IN), OPTIONAL        :: omega(3), domega(3), gravity(3)
-        REAL(KIND=C_DOUBLE), INTENT(IN), OPTIONAL        :: GlbPos(3), GlbRot(3,3), RootOri(3,3)
+        REAL(KIND=C_DOUBLE), INTENT(IN), OPTIONAL        :: GlbPos(3), RootOri(3,3)
         INTEGER(KIND=C_INT), INTENT(  OUT)               :: nxLoads,nxDisp        ! Returns the number of nodes for loads and displacement
 
 
@@ -43,10 +43,10 @@ MODULE BeamDynLib_CBind
         IF(PRESENT(GlbRotBladeT0)) THEN; BD_UsrData(idx)%GlbRotBladeT0   = GlbRotBladeT0==1; ELSE; BD_UsrData(idx)%GlbRotBladeT0 = .TRUE.; ENDIF ! Initial blade root orientation is also the GlbRot reference frame
             
         IF(PRESENT(GlbPos))      THEN; BD_UsrData(idx)%GlbPos(:)      = GlbPos(:)  ; ELSE; BD_UsrData(idx)%GlbPos      =  (/0.0, 0.0, 1.0/); ENDIF ! Initial vector position 
-        IF(PRESENT(GlbRot))      THEN; BD_UsrData(idx)%GlbRot         = GlbRot     ; ELSE; BD_UsrData(idx)%GlbRot      = 0.0;                ENDIF ! DCM of the global blade frame (e.g. used for gravity)
         IF(PRESENT(RootOri))     THEN; BD_UsrData(idx)%RootOri        = RootOri    ; ELSE; BD_UsrData(idx)%RootOri     = 0.0;                ENDIF ! DCM of the root orientation
+        BD_UsrData(idx)%GlbRot      = 0.0; ! Will be set in BD_initFromUsrData()
         DO j=1,3
-            IF( .NOT. PRESENT(GlbRot))      BD_UsrData(idx)%GlbRot(j,j)      = 1.0
+            BD_UsrData(idx)%GlbRot(j,j)      = 1.0
             IF( .NOT. PRESENT(RootOri))     BD_UsrData(idx)%RootOri(j,j)     = 1.0
         END DO 
 
@@ -93,11 +93,11 @@ MODULE BeamDynLib_CBind
         CALL c_f_pointer(xDisp, f_xDisp, [3,BD_UsrData(1)%BD_Output%BldMotion%Nnodes])
 
         DO i=1,BD_UsrData(1)%BD_Input(1)%DistrLoad%Nnodes
-            f_xLoads(1:3,i) = BD_UsrData(1)%BD_Input(1)%DistrLoad%Position(1:3,i) - BD_UsrData(1)%GlbPos(1:3)
+            f_xLoads(1:3,i) = MATMUL(BD_UsrData(1)%GlbRot, BD_UsrData(1)%BD_Input(1)%DistrLoad%Position(1:3,i) - BD_UsrData(1)%GlbPos(1:3))
         END DO
 
         DO i=1,BD_UsrData(1)%BD_Output%BldMotion%Nnodes
-            f_xDisp(1:3,i) = BD_UsrData(1)%BD_Output%BldMotion%Position(1:3,i) - BD_UsrData(1)%GlbPos(1:3)
+            f_xDisp(1:3,i)  = MATMUL(BD_UsrData(1)%GlbRot, BD_UsrData(1)%BD_Output%BldMotion%Position(1:3,i) - BD_UsrData(1)%GlbPos(1:3))
         END DO
 
         xLoads = C_LOC(f_xLoads(1,1))
@@ -162,7 +162,7 @@ MODULE BeamDynLib_CBind
         CALL BeamDyn_C_getDisp(BD_UsrData(idxBeam),f_u,f_du)
 
         DO i=1,BD_UsrData(idxBeam)%BD_Output%BldMotion%NNodes
-                f_x(1:3,i) = BD_UsrData(idxBeam)%BD_Output%BldMotion%Position(1:3,i)
+            f_x(1:3,i)  = MATMUL(BD_UsrData(idxBeam)%GlbRot, BD_UsrData(idxBeam)%BD_Output%BldMotion%Position(1:3,i) - BD_UsrData(idxBeam)%GlbPos(1:3))
         ENDDO
 
         x  = C_LOC(f_x(1,1));

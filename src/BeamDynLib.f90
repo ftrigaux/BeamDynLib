@@ -181,7 +181,7 @@ MODULE BeamDynLib
       END DO
       
       usr%BD_InputTimes(1)  = usr%t + usr%dt
-      CALL BDUsr_UpdateOrientation(usr)
+      ! CALL BDUsr_UpdateOrientation(usr) ! This is not longer necessary as the orientation is updated in BD_inputSolve
       !CALL BD_InputSolve( BD_InputTimes(1), BD_Input(1), DvrData, ErrStat, ErrMsg)
       CALL BDUsr_InputSolve(usr,1)
          CALL CheckError(usr,ErrStat,ErrMsg,"during BD_InputSolve() function of BeamDyn")
@@ -506,14 +506,13 @@ MODULE BeamDynLib
    !---------------------- FRAME PARAMETER --------------------------------------
    ! Not set: GlbRotBladeT0
    usr%BD_InitInput%GlbPos(:)   = 0.0_ReKi
-   usr%BD_InitInput%GlbRot(:,:) = 0.0_R8Ki
    usr%BD_InitInput%RootOri(:,:) = 0.0_R8Ki
 
    usr%BD_InitInput%GlbPos(1:3)      = usr%GlbPos(1:3)
    usr%BD_InitInput%RootOri(1:3,1:3) = usr%RootOri(1:3,1:3)
-   usr%BD_InitInput%GlbRot(1:3,1:3)  = usr%GlbRot(1:3,1:3)
 
-   usr%orientation(1:3,1:3) = usr%RootOri(1:3,1:3)
+   !usr%orientation(1:3,1:3) = usr%RootOri(1:3,1:3)
+   call eye(usr%orientation,ErrStat2,ErrMsg2)
 
       ! Use the initial blade root orientation as the GlbRot reference orientation for all calculations?
    IF ( usr%GlbRotBladeT0 ) THEN
@@ -528,6 +527,8 @@ MODULE BeamDynLib
          CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
    END IF
 
+   usr%GlbRot(1:3,1:3) = usr%BD_InitInput%GlbRot(1:3,1:3)
+
    !---------------------- INITIAL VELOCITY PARAMETER --------------------------------
    usr%BD_InitInput%RootVel(4:6) = usr%omega(1:3)
    usr%BD_InitInput%RootVel(1:3) = cross_product(usr%BD_InitInput%RootVel(4:6),usr%BD_InitInput%GlbPos(:))
@@ -537,8 +538,8 @@ MODULE BeamDynLib
 
    ! initialize the usr%BD_InitInput values not in the driver input file
    usr%BD_InitInput%RootName     = TRIM(usr%BD_Initinput%InputFile)
-   usr%BD_InitInput%RootDisp     = matmul(transpose(usr%BD_InitInput%RootOri),usr%BD_InitInput%GlbPos) - usr%BD_InitInput%GlbPos
-   usr%BD_InitInput%RootVel(1:3) = matmul(usr%BD_InitInput%RootOri, Cross_Product( usr%BD_InitInput%RootVel(4:6), usr%BD_InitInput%GlbPos ))  ! set translational velocities based on rotation and GlbPos.
+   usr%BD_InitInput%RootDisp     = 0.d0
+   usr%BD_InitInput%RootVel(1:3) = Cross_Product(usr%BD_InitInput%RootVel(4:6),usr%BD_InitInput%GlbPos(:))
    usr%BD_InitInput%DynamicSolve = usr%DynamicSolve      ! QuasiStatic options handled within the BD code.
        
 END SUBROUTINE BD_initFromUsrData
@@ -556,14 +557,47 @@ SUBROUTINE BDuser_InitRotationCenterMesh(usr)
    real(R8Ki)                                 :: z_hat(3)  ! unit-magnitude rotational velocity vector
    real(R8Ki)                                 :: Z_unit(3) ! unit vector in the Z direction
    real(R8Ki)                                 :: vec(3)    ! temporary vector
-   
+   real(R8Ki)                                 :: w         ! norm of omega
+
    ErrStat = ErrID_None
    ErrMsg = ''
    
    
    position = 0.0_ReKi  ! center of rotation
    
-   call eye(orientation, ErrStat2, ErrMsg2) ! new version
+   w = TwoNorm( usr%BD_InitInput%RootVel(4:6) )
+   
+   if (EqualRealNos(w,0.0_R8Ki)) then
+      w = 0.0_R8Ki
+         ! the beam is not rotating, so pick an orientation
+      call eye(orientation, ErrStat2, ErrMsg2)
+   else
+      z_hat = usr%BD_InitInput%RootVel(4:6) / w
+      
+      if ( EqualRealNos( z_hat(3), 1.0_R8Ki ) ) then
+         call eye(orientation, ErrStat2, ErrMsg2)
+      elseif ( EqualRealNos( z_hat(3), -1.0_R8Ki ) ) then
+         orientation = 0.0_ReKi
+         orientation(1,1) = -1.0_R8Ki
+         orientation(2,2) =  1.0_R8Ki
+         orientation(3,3) = -1.0_R8Ki
+      else
+         
+         Z_unit = (/0.0_R8Ki, 0.0_R8Ki, 1.0_R8Ki/)
+         
+         vec = Z_unit - z_hat*z_hat(3) ! vec = matmul( eye(3) - outerproduct(z_hat,z_hat), (/ 0,0,1/) )
+         vec = vec / TwoNorm(vec)      ! we've already checked that this is not zero
+         orientation(1,:) = vec
+
+         vec = cross_product(z_hat,Z_unit)
+         vec = vec / TwoNorm(vec)
+         orientation(2,:) = vec
+                  
+         orientation(3,:) = z_hat
+         
+      end if
+      
+   end if
    
    !.......................
    ! Mesh for center of rotation
@@ -622,7 +656,7 @@ SUBROUTINE BDUsr_InputSolve(usr,i)
                                          
    ! local variables
    REAL(R8Ki)                                 :: Orientation(3,3)
-   REAL(DbKi)                                 :: dt,w,theta,omega(3)          ! time from start start of simulation multiplied by magnitude of rotational velocity
+   REAL(DbKi)                                 :: dt,w,wt,cwt,swt,theta,omega(3)          ! time from start start of simulation multiplied by magnitude of rotational velocity
    REAL(DbKi)                                 :: dOri(3,3)
 
    INTEGER(IntKi)                             :: j
@@ -639,24 +673,49 @@ SUBROUTINE BDUsr_InputSolve(usr,i)
    !.............................
    
    ! Compute the orientation at the center of rotation 
-   dt  = usr%BD_InputTimes(i) - usr%t
-   IF (i == 1) THEN
-      Orientation(1:3,1:3) = usr%orientation(1:3,1:3);
-   ELSE
-      w     = TwoNorm(usr%omega)
-      IF (w .eq. 0.0_DbKi) THEN
-         CALL eye(dOri,ErrStat2,ErrMsg2)
-      ELSE
-         theta = - w * (i-1) * usr%dt
-         omega(1:3) = usr%omega(1:3) / w
+   !dt  = usr%BD_InputTimes(i) - usr%t
+   !IF (i == 1) THEN
+   !   Orientation(1:3,1:3) = usr%orientation(1:3,1:3);
+   !ELSE
+   !   w     = TwoNorm(usr%omega)
+   !   IF (w .eq. 0.0_DbKi) THEN
+   !      CALL eye(dOri,ErrStat2,ErrMsg2)
+   !   ELSE
+   !      theta = - w * (i-1) * usr%dt
+   !      omega(1:3) = usr%omega(1:3) / w
+   !      ! Rotation matrix obtained using Rodrigues formula: R = I + sin(theta) tilde(omega) + (1-cos(theta)) tilde(omega)^2
+   !      CALL eye(dOri,ErrStat2,ErrMsg);
+   !      dOri  = dOri + sin(theta) * SkewSymMat(omega) + (1-cos(theta)) * MATMUL(SkewSymMat(omega),SkewSymMat(omega))
+   !      dOri = TRANSPOSE(dOri)
+   !   ENDIF
+   !   Orientation = matmul(usr%orientation,dOri);
+   !ENDIF
 
-         ! Rotation matrix obtained using Rodrigues formula: R = I + sin(theta) tilde(omega) + (1-cos(theta)) tilde(omega)^2
-         CALL eye(dOri,ErrStat2,ErrMsg);
-         dOri  = dOri + sin(theta) * SkewSymMat(omega) + (1-cos(theta)) * MATMUL(SkewSymMat(omega),SkewSymMat(omega))
-         dOri = TRANSPOSE(dOri)
-      ENDIF
-      Orientation = matmul(usr%orientation,dOri);
-   ENDIF
+   w  = TwoNorm(usr%omega)
+   wt = w * (usr%BD_InputTimes(i) - usr%t)
+   swt = sin( wt )
+   cwt = cos( wt )
+   dOri(1,1) =  cwt
+   dOri(2,1) = -swt
+   dOri(3,1) =  0.0_R8Ki
+   
+   dOri(1,2) = swt
+   dOri(2,2) = cwt
+   dOri(3,2) = 0.0_R8Ki
+   
+   dOri(1,3) = 0.0_R8Ki
+   dOri(2,3) = 0.0_R8Ki
+   dOri(3,3) = 1.0_R8Ki
+   
+   Orientation              = matmul(usr%orientation,dOri)
+   if (i==1) then
+      usr%orientation(1:3,1:3) = REAL(Orientation(1:3,1:3),DbKi)
+   endif
+
+   !write(*,*) "t = ",usr%BD_InputTimes(i)
+   !write(*,*) "Orientation = "
+   !write(*,"(3F10.5)") Orientation
+   !write(*,"(3F10.5)") dOri
       
    usr%RotationCenter%Orientation(:,:,1) = matmul(Orientation, matmul(usr%RotationCenter%RefOrientation(:,:,1),usr%RootRelInit))
    usr%RotationCenter%RotationVel(:,1)   = usr%omega(1:3)
@@ -680,8 +739,8 @@ SUBROUTINE BDUsr_InputSolve(usr,i)
    ! LINE2 mesh: DistrLoad
    !.............................
    DO j=1,usr%BD_Input(i)%DistrLoad%NNodes
-      usr%BD_Input(i)%DistrLoad%Force(:,j) =  MATMUL(TRANSPOSE(Orientation), usr%loads(1:3,j))
-      usr%BD_Input(i)%DistrLoad%Moment(:,j)=  MATMUL(TRANSPOSE(Orientation), usr%loads(4:6,j))
+      usr%BD_Input(i)%DistrLoad%Force(:,j) =  MATMUL(TRANSPOSE(usr%BD_Input(i)%RootMotion%Orientation(:,:,1)), usr%loads(1:3,j))
+      usr%BD_Input(i)%DistrLoad%Moment(:,j)=  MATMUL(TRANSPOSE(usr%BD_Input(i)%RootMotion%Orientation(:,:,1)), usr%loads(4:6,j))
    ENDDO
 
 END SUBROUTINE BDUsr_InputSolve
