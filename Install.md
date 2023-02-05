@@ -42,8 +42,9 @@ To build the fortran only program version, use
 ```
 make fprog
 ```
+To use intel compilers 'ifort' instead, rename `Makefile.intel` to `Makefile` and run `make`. Typically, intel compilers with MKL run faster than with gfortran (~20% in double precision)
 ### Run the simulation
-In a directory (for example: `run/nrel5mw_dybamic`), copy the input files from openfast:
+In a directory (for example: `run/nrel5mw_dynamic`), copy the input files from openfast:
 ```
 scp /openfast/docs/source/user/beamdyn/examples/*.inp .
 ```

@@ -172,6 +172,30 @@ MODULE BeamDynLib_CBind
 
     END SUBROUTINE getDisplacement
 
+    SUBROUTINE getReactionForce(x,F,idxBeam) BIND(C,NAME="f_getReactionForce")
+
+        TYPE(C_PTR),INTENT(OUT)      :: x, F
+        INTEGER(C_INT),INTENT(IN),VALUE :: idxBeam
+
+        REAL(R8Ki), POINTER          :: f_x(:,:)
+        REAL(R8Ki), POINTER          :: f_F(:,:)
+
+        INTEGER(IntKi) :: i
+
+        CALL c_f_pointer(x ,f_x ,[3,BD_UsrData(idxBeam)%nxD])
+        CALL c_f_pointer(F ,f_F ,[6,BD_UsrData(idxBeam)%nxD])
+
+        CALL BeamDyn_C_getReactionForce(BD_UsrData(idxBeam),f_F)
+
+        DO i=1,BD_UsrData(idxBeam)%BD_Output%ReactionForce%NNodes
+            f_x(1:3,i)  = MATMUL(BD_UsrData(idxBeam)%GlbRot, BD_UsrData(idxBeam)%BD_Output%ReactionForce%Position(1:3,i) - BD_UsrData(idxBeam)%GlbPos(1:3))
+        ENDDO
+
+        x  = C_LOC(f_x(1,1));
+        F  = C_LOC(f_F(1,1));
+
+    END SUBROUTINE getReactionForce
+
     ! This function should be used before every "solve" to set the orientation and displacement of the root
     SUBROUTINE setBC(idxBeam,            &
                      omega, domega)  BIND(C,NAME="f_setBC")

@@ -61,8 +61,8 @@ def opt(dt,ftype):
 
 class PyBeamDyn(ct.CDLL):
 
-    def __init__(self):
-        super().__init__('/Users/ftrigaux/Documents/Beams/BeamDynLib/libBeamDyn.so')
+    def __init__(self,library_path='/Users/ftrigaux/Documents/Beams/BeamDynLib/libBeamDyn.so'):
+        super().__init__(library_path)
         self.f_initBeamDyn.argtypes = [ct.c_int,ct.c_char_p,ct.c_int,
                                     ct.POINTER(ct.c_double),ct.POINTER(ct.c_int),ct.POINTER(ct.c_double),
                                     ct.POINTER(ct.c_int),
@@ -88,6 +88,9 @@ class PyBeamDyn(ct.CDLL):
 
         self.f_getDisplacement.argtypes = [ND_POINTER_2,ND_POINTER_2,ND_POINTER_2, ct.c_int]
         self.f_getDisplacement.restype  = None
+
+        self.f_getReactionForce.argtypes = [ND_POINTER_2,ND_POINTER_2, ct.c_int]
+        self.f_getReactionForce.restype  = None
 
         self.f_setBC.argtypes = [ct.c_int,ND_ARRAY_3,ND_ARRAY_3]
         self.f_setBC.restype  = None
@@ -129,6 +132,12 @@ class PyBeamDyn(ct.CDLL):
         du = np.zeros((6,self.nxDisp),order='F'); 
         self.f_getDisplacement(NP_F_2D(x),NP_F_2D(u),NP_F_2D(du),idxBeam)
         return x,u,du
+    
+    def getReactionForce(self,idxBeam):
+        x  = np.zeros((3,self.nxDisp),order='F');
+        F  = np.zeros((6,self.nxDisp),order='F');
+        self.f_getReactionForce(NP_F_2D(x),NP_F_2D(F),idxBeam)
+        return x,F
 
     def solve(self,idxBeam):
         self.f_solve(idxBeam)

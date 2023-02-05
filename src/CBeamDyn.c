@@ -27,17 +27,19 @@ void BD_initBeamDyn(BD_Data *bd)
                 bd->GlbPos, &bd->GlbRotBladeT0, bd->RootOri,
                 &bd->nxL, &bd->nxD);
 
-    ALLOCATE2(bd->xLoads,double,3,bd->nxL);
-    ALLOCATE2(bd->xDisp, double,3,bd->nxD);
-    ALLOCATE2(bd->loads, double,6,bd->nxL);
-    ALLOCATE2(bd->u,     double,6,bd->nxD);
-    ALLOCATE2(bd->du,    double,6,bd->nxD);
+    ALLOCATE2(bd->xLoads,       double,3,bd->nxL);
+    ALLOCATE2(bd->xDisp,        double,3,bd->nxD);
+    ALLOCATE2(bd->loads,        double,6,bd->nxL);
+    ALLOCATE2(bd->u,            double,6,bd->nxD);
+    ALLOCATE2(bd->du,           double,6,bd->nxD);
+    ALLOCATE2(bd->reactionForce,double,6,bd->nxD);
 
-    FILLZERO2(bd->xLoads,3, bd->nxL);
-    FILLZERO2(bd->xDisp, 3, bd->nxD);
-    FILLZERO2(bd->loads, 6, bd->nxL);
-    FILLZERO2(bd->u,     6, bd->nxD);
-    FILLZERO2(bd->du,    6, bd->nxD);
+    FILLZERO2(bd->xLoads,       3, bd->nxL);
+    FILLZERO2(bd->xDisp,        3, bd->nxD);
+    FILLZERO2(bd->loads,        6, bd->nxL);
+    FILLZERO2(bd->u,            6, bd->nxD);
+    FILLZERO2(bd->du,           6, bd->nxD);
+    FILLZERO2(bd->reactionForce,6, bd->nxD);
 
 }
 
@@ -63,11 +65,12 @@ void BD_freeBeamDyn(BD_Data *bd, int deallocAll)
 {
     f_freeBeamDyn(bd->idx,deallocAll);
 
-    DEALLOCATE2(bd->xLoads,3);
-    DEALLOCATE2(bd->xDisp ,3);
-    DEALLOCATE2(bd->loads ,6);
-    DEALLOCATE2(bd->u     ,6);
-    DEALLOCATE2(bd->du    ,6);
+    DEALLOCATE2(bd->xLoads       ,3);
+    DEALLOCATE2(bd->xDisp        ,3);
+    DEALLOCATE2(bd->loads        ,6);
+    DEALLOCATE2(bd->u            ,6);
+    DEALLOCATE2(bd->du           ,6);
+    DEALLOCATE2(bd->reactionForce,6);
 }
 
 
@@ -99,6 +102,17 @@ void BD_getDisplacement(BD_Data *bd)
     UNRAVEL2(bd,du    ,6,bd->nxD,double);
 }
 
+void BD_getReactionForce(BD_Data *bd)
+{
+    RAVEL2(bd,xDisp        ,3,bd->nxD,double);
+    RAVEL2(bd,reactionForce,6,bd->nxD,double);
+
+    f_getReactionForce(&rav_xDisp,&rav_reactionForce,bd->idx);
+
+    UNRAVEL2(bd,xDisp        ,3,bd->nxD,double);
+    UNRAVEL2(bd,reactionForce,6,bd->nxD,double);
+}
+
 void BD_setBC(BD_Data *bd)
 {
     f_setBC(bd->idx, bd->omega, bd->domega);
@@ -119,7 +133,9 @@ void BD_writeSolToBin(BD_Data *bd, char* fileName)
     }
 
     for (i=0;i<6;i++){
-        fwrite(bd->u[i],sizeof(double),bd->nxD,fid);
+        fwrite(bd->u[i]            ,sizeof(double),bd->nxD,fid);
+        fwrite(bd->du[i]           ,sizeof(double),bd->nxD,fid);
+        fwrite(bd->reactionForce[i],sizeof(double),bd->nxD,fid);
     }
 
     fclose(fid);
@@ -209,7 +225,7 @@ int main(int argc, char *argv[])
 
         // Set the time steps and the number of time steps
         bd[k]->dt        = 5e-2;
-        bd[k]->nt        = 1;
+        bd[k]->nt        = 10;
         bd[k]->t         = 0;
         
         // Set the rotation speed and the gravity constrains

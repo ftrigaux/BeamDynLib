@@ -86,6 +86,7 @@ typedef struct
     double  **xLoads, **xDisp;    // Undeformed node position for loads and displacement [m]
     double  **loads;              // Load input (at xLoad) [N,Nm]
     double  **u, **du;            // Displacement and structural velocity output (at xDisp) [m]
+    double  **reactionForce;        // Internal reaction loads (output) (F,M)
 
     double  omega[3], domega[3], gravity[3];  // Angular velocity and acceleration [rad/s]
      
@@ -104,6 +105,8 @@ void BD_setLoads(BD_Data *bd);
 void BD_solve(BD_Data *bd);
 
 void BD_getDisplacement(BD_Data *bd);
+
+void BD_getReactionForce(BD_Data *bd);
 
 void BD_setBC(BD_Data *bd);
 
@@ -131,6 +134,8 @@ void f_setLoads(double **, int);
 void f_solve(int);
 
 void f_getDisplacement(double**,double**,double**,int);
+
+void f_getReactionForce(double**,double**,int);
 
 void f_setBC(int, double[3], double[3]);
 
