@@ -1,0 +1,78 @@
+--------- BEAMDYN with OpenFAST INPUT FILE -------------------------------------------
+Converted by hawc2ToBeamDyn.py from DTU_10MW_RWT_master.htc MW            - Offshore Reference Turbine
+---------------------- SIMULATION CONTROL --------------------------------------
+False         Echo          - Echo input data to "<RootName>.ech" (flag)
+True          QuasiStaticInit - Use quasistatic pre-conditioning with centripetal accelerations in initialization (flag) [dynamic solve only]
+0             rhoinf        - Numerical damping parameter for generalized-alpha integrator
+2             quadrature    - Quadrature method: 1=Gaussian; 2=Trapezoidal (switch)
+1             refine        - Refinement factor for trapezoidal quadrature (-). DEFAULT = 1 [used only when quadrature=2]
+DEFAULT       n_fact        - Factorization frequency (-). DEFAULT = 5
+DEFAULT       DTBeam        - Time step size (s).
+DEFAULT       load_retries  - Number of factored load retries before quitting the aimulation
+DEFAULT       NRMax         - Max number of iterations in Newton-Ralphson algorithm (-). DEFAULT = 10
+DEFAULT       stop_tol      - Tolerance for stopping criterion (-)
+DEFAULT       tngt_stf_fd   - Flag to use finite differenced tangent stiffness matrix (-)
+DEFAULT       tngt_stf_comp - Flag to compare analytical finite differenced tangent stiffness matrix (-)
+DEFAULT       tngt_stf_pert - perturbation size for finite differencing (-)
+DEFAULT       tngt_stf_difftol- - Maximum allowable relative difference between analytical and fd tangent stiffness (-)
+True          RotStates     - Orient states in the rotating frame during linearization? (flag) [used only when linearizing]
+---------------------- GEOMETRY PARAMETER --------------------------------------
+1             member_total  - Total number of members (-)
+24            kp_total      - Total number of key points (-) [must be at least 3]
+1, 24         kp_per_member - Member number; Number of key points in this member
+kp_xr           kp_yr           kp_zr           initial_twist  
+(m)             (m)             (m)             (deg)          
+              0	             -0	              0	 1.45000000e+01
+-1.54114808e-02	              0	 3.75502174e+00	 1.44962501e+01
+-2.75993887e-02	              0	 7.51004348e+00	 1.44243499e+01
+-1.72593364e-02	              0	 1.12650652e+01	 1.37186065e+01
+-4.92454389e-03	              0	 1.50200870e+01	 1.19383251e+01
+-2.36507745e-02	              0	 1.87751087e+01	 9.71473371e+00
+-6.54475847e-02	              0	 2.25301304e+01	 8.10839923e+00
+-1.22631519e-01	              0	 2.62851522e+01	 7.08149533e+00
+-1.94430089e-01	              0	 3.00401739e+01	 6.28448554e+00
+-2.80523172e-01	              0	 3.37951957e+01	 5.57217041e+00
+-3.86057274e-01	              0	 3.75502174e+01	 4.88214135e+00
+-5.00851384e-01	              0	 4.13052391e+01	 4.17206441e+00
+-6.33343296e-01	              0	 4.50602609e+01	 3.41002606e+00
+-7.81498496e-01	              0	 4.88152826e+01	 2.63505223e+00
+-9.40803159e-01	              0	 5.25703043e+01	 1.85087066e+00
+-1.12726822e+00	              0	 5.63253261e+01	 1.10856507e+00
+-1.32315234e+00	              0	 6.00803478e+01	 3.87675934e-01
+-1.54594287e+00	              0	 6.38353696e+01	-2.59151052e-01
+-1.78628517e+00	              0	 6.75903913e+01	-8.64918080e-01
+-2.04641925e+00	              0	 7.13454130e+01	-1.42438499e+00
+-2.33941826e+00	              0	 7.51004348e+01	-1.96294360e+00
+-2.64248697e+00	              0	 7.88554565e+01	-2.49509597e+00
+-2.97984105e+00	              0	 8.26104783e+01	-3.00461829e+00
+-3.33685000e+00	              0	 8.63655000e+01	-3.42796000e+00
+---------------------- MESH PARAMETER ------------------------------------------
+10            order_elem    - Order of interpolation (basis) function (-)
+---------------------- MATERIAL PARAMETER --------------------------------------
+"DTU10MW_BeamDyn_n024_blade.dat" BldFile       - Name of file containing properties for blade (quoted string)
+---------------------- PITCH ACTUATOR PARAMETERS -------------------------------
+False         UsePitchAct   - Whether a pitch actuator should be used (flag)
+200           PitchJ        - Pitch actuator inertia (kg-m^2) [used only when UsePitchAct is true]
+20000000.0    PitchK        - Pitch actuator stiffness (kg-m^2/s^2) [used only when UsePitchAct is true]
+500000        PitchC        - Pitch actuator damping (kg-m^2/s) [used only when UsePitchAct is true]
+---------------------- OUTPUTS -------------------------------------------------
+False         SumPrint      - Print summary data to "<RootName>.sum" (flag)
+"ES10.3E2"    OutFmt        - Format used for text tabular output, excluding the time channel.
+0             NNodeOuts     - Number of nodes to output to file [0 - 9] (-)
+0             OutNd         - Nodes whose values will be output (-)
+ OutList The next line(s) contains a list of output parameters. See OutListParameters.xlsx for a listing of available output channels, (-)
+"RootFxr, RootFyr, RootFzr"
+"RootMxr, RootMyr, RootMzr"
+"TipTDxr, TipTDyr, TipTDzr"
+"TipRDxr, TipRDyr, TipRDzr"
+END
+====== Outputs for all blade stations (same ending as above for B1N1.... =========================== (optional section)
+"All"         BldNd_BlOutNd - Future feature will allow selecting a portion of the nodes to output. Not implemented yet. (-)
+ OutList_Nodal The next line(s) contains a list of output parameters.  See OutListParameters.xlsx for a listing of available output channels, (-)
+"TDxr"
+"TDyr"
+"RDxr"
+"RDyr"
+"RDzr"
+END
+---------------------------------------------------------------------------------------

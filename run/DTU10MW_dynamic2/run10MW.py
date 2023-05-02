@@ -8,32 +8,20 @@ from pyBeamDyn import PyBeamDyn
 
 #plt.close('all')
 #%% ---- Definition of the dynamic problem  -----
-dt = 2e-2
-nt = 2
+dt = 0.015/3.0
+nt = 20000
 q1 = 1e4
 q2 = 0.0
 to = 0.0
 
-#%% Import the loads from file 
-
-FAero = np.loadtxt("loads/loads_9ms_FAST.txt",skiprows=1);
-Fx = interp1d(FAero[:,0],FAero[:,1],fill_value="extrapolate");
-Fy = interp1d(FAero[:,0],FAero[:,2],fill_value="extrapolate");
-
-Fx_t = np.fromfile("loads/loads_Fx_9ms_5e-4s.bin").reshape(50,10001);
-Fy_t = np.fromfile("loads/loads_Fy_9ms_5e-4s.bin").reshape(50,10001);
-t = np.linspace(0,1e4*5e-4,int(1e4+1));
-Fx_t = interp2d(t,FAero[:,0],Fx_t);
-Fy_t = interp2d(t,FAero[:,0],Fy_t);
-
 #%% ---- Solve the Dynamic Problem with BeamDyn -- python version -----
 nBeam      = 1
-L          = 120.1
-Rhub       = 3.0
+L          = 86.16
+Rhub       = 2.8
 omega      = 9*9/120;
-inputFile  = "IEA-15-240-RWT_BeamDyn.dat"
+inputFile  = "DTU10MW_BeamDyn_n016.dat"
 DynamicSolve=1
-nt_loc     = 1
+nt_loc     = 4
 GlbPos     = np.array([0.0,0.0,Rhub],order='F')
 t          = np.linspace(dt,nt*dt*nt_loc,nt)
 

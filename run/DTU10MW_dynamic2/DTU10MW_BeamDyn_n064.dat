@@ -1,0 +1,118 @@
+--------- BEAMDYN with OpenFAST INPUT FILE -------------------------------------------
+Converted by hawc2ToBeamDyn.py from DTU_10MW_RWT_master.htc MW            - Offshore Reference Turbine
+---------------------- SIMULATION CONTROL --------------------------------------
+False         Echo          - Echo input data to "<RootName>.ech" (flag)
+True          QuasiStaticInit - Use quasistatic pre-conditioning with centripetal accelerations in initialization (flag) [dynamic solve only]
+0             rhoinf        - Numerical damping parameter for generalized-alpha integrator
+2             quadrature    - Quadrature method: 1=Gaussian; 2=Trapezoidal (switch)
+1             refine        - Refinement factor for trapezoidal quadrature (-). DEFAULT = 1 [used only when quadrature=2]
+DEFAULT       n_fact        - Factorization frequency (-). DEFAULT = 5
+DEFAULT       DTBeam        - Time step size (s).
+DEFAULT       load_retries  - Number of factored load retries before quitting the aimulation
+DEFAULT       NRMax         - Max number of iterations in Newton-Ralphson algorithm (-). DEFAULT = 10
+DEFAULT       stop_tol      - Tolerance for stopping criterion (-)
+DEFAULT       tngt_stf_fd   - Flag to use finite differenced tangent stiffness matrix (-)
+DEFAULT       tngt_stf_comp - Flag to compare analytical finite differenced tangent stiffness matrix (-)
+DEFAULT       tngt_stf_pert - perturbation size for finite differencing (-)
+DEFAULT       tngt_stf_difftol- - Maximum allowable relative difference between analytical and fd tangent stiffness (-)
+True          RotStates     - Orient states in the rotating frame during linearization? (flag) [used only when linearizing]
+---------------------- GEOMETRY PARAMETER --------------------------------------
+1             member_total  - Total number of members (-)
+64            kp_total      - Total number of key points (-) [must be at least 3]
+1, 64         kp_per_member - Member number; Number of key points in this member
+kp_xr           kp_yr           kp_zr           initial_twist  
+(m)             (m)             (m)             (deg)          
+              0	             -0	              0	 1.45000000e+01
+-5.54230834e-03	              0	 1.37088095e+00	 1.45000000e+01
+-1.11546767e-02	              0	 2.74176190e+00	 1.45000000e+01
+-1.69269837e-02	              0	 4.11264286e+00	 1.44944739e+01
+-2.27364116e-02	              0	 5.48352381e+00	 1.44876652e+01
+-2.69841331e-02	              0	 6.85440476e+00	 1.44645097e+01
+-2.79700342e-02	              0	 8.22528571e+00	 1.43729508e+01
+-2.45866452e-02	              0	 9.59616667e+00	 1.41710378e+01
+-1.86618344e-02	              0	 1.09670476e+01	 1.38227126e+01
+-1.21549605e-02	              0	 1.23379286e+01	 1.33300768e+01
+-6.92021309e-03	              0	 1.37088095e+01	 1.26606418e+01
+-5.16902098e-03	              0	 1.50796905e+01	 1.19018375e+01
+-1.07919939e-02	              0	 1.64505714e+01	 1.10626236e+01
+-1.64149668e-02	              0	 1.78214524e+01	 1.02234097e+01
+-2.78387318e-02	              0	 1.91923333e+01	 9.51529129e+00
+-4.15991628e-02	              0	 2.05632143e+01	 8.85998049e+00
+-5.72650461e-02	              0	 2.19340952e+01	 8.29223152e+00
+-7.60848849e-02	              0	 2.33049762e+01	 7.86941725e+00
+-9.50973075e-02	              0	 2.46758571e+01	 7.45108911e+00
+-1.18552376e-01	              0	 2.60467381e+01	 7.13624997e+00
+-1.42007445e-01	              0	 2.74176190e+01	 6.82141082e+00
+-1.68758277e-01	              0	 2.87885000e+01	 6.53510194e+00
+-1.96875023e-01	              0	 3.01593810e+01	 6.26061731e+00
+-2.26662434e-01	              0	 3.15302619e+01	 5.99340859e+00
+-2.59262354e-01	              0	 3.29011429e+01	 5.73844864e+00
+-2.92117391e-01	              0	 3.42720238e+01	 5.48361970e+00
+-3.31401342e-01	              0	 3.56429048e+01	 5.23209239e+00
+-3.70685293e-01	              0	 3.70137857e+01	 4.98056508e+00
+-4.09969244e-01	              0	 3.83846667e+01	 4.72903777e+00
+-4.49253195e-01	              0	 3.97555476e+01	 4.47751046e+00
+-4.94542246e-01	              0	 4.11264286e+01	 4.20835195e+00
+-5.42912309e-01	              0	 4.24973095e+01	 3.93014747e+00
+-5.91282372e-01	              0	 4.38681905e+01	 3.65194300e+00
+-6.39652435e-01	              0	 4.52390714e+01	 3.37373852e+00
+-6.88022498e-01	              0	 4.66099524e+01	 3.09553404e+00
+-7.46097459e-01	              0	 4.79808333e+01	 2.80931481e+00
+-8.04256305e-01	              0	 4.93517143e+01	 2.52302629e+00
+-8.62415150e-01	              0	 5.07225952e+01	 2.23673778e+00
+-9.20573996e-01	              0	 5.20934762e+01	 1.95044927e+00
+-9.82361413e-01	              0	 5.34643571e+01	 1.66975530e+00
+-1.05179592e+00	              0	 5.48352381e+01	 1.40085165e+00
+-1.12123044e+00	              0	 5.62061190e+01	 1.13194800e+00
+-1.19066495e+00	              0	 5.75770000e+01	 8.63044342e-01
+-1.26009946e+00	              0	 5.89478810e+01	 5.94140688e-01
+-1.33729777e+00	              0	 6.03187619e+01	 3.46607554e-01
+-1.41863399e+00	              0	 6.16896429e+01	 1.10464369e-01
+-1.49997022e+00	              0	 6.30605238e+01	-1.25678817e-01
+-1.58130644e+00	              0	 6.44314048e+01	-3.61822002e-01
+-1.66264266e+00	              0	 6.58022857e+01	-5.97965188e-01
+-1.75738138e+00	              0	 6.71731667e+01	-8.02755090e-01
+-1.85235097e+00	              0	 6.85440476e+01	-1.00700491e+00
+-1.94732055e+00	              0	 6.99149286e+01	-1.21125474e+00
+-2.04229014e+00	              0	 7.12858095e+01	-1.41550456e+00
+-2.14218306e+00	              0	 7.26566905e+01	-1.61662221e+00
+-2.25282719e+00	              0	 7.40275714e+01	-1.81090006e+00
+-2.36347133e+00	              0	 7.53984524e+01	-2.00517791e+00
+-2.47411546e+00	              0	 7.67693333e+01	-2.19945576e+00
+-2.58475959e+00	              0	 7.81402143e+01	-2.39373361e+00
+-2.69910069e+00	              0	 7.95110952e+01	-2.58722326e+00
+-2.82110600e+00	              0	 8.08819762e+01	-2.77745187e+00
+-2.94632674e+00	              0	 8.22528571e+01	-2.96010813e+00
+-3.07500055e+00	              0	 8.36237381e+01	-3.12963880e+00
+-3.20635038e+00	              0	 8.49946190e+01	-3.28472753e+00
+-3.33685000e+00	              0	 8.63655000e+01	-3.42796000e+00
+---------------------- MESH PARAMETER ------------------------------------------
+10            order_elem    - Order of interpolation (basis) function (-)
+---------------------- MATERIAL PARAMETER --------------------------------------
+"DTU10MW_BeamDyn_n064_blade.dat" BldFile       - Name of file containing properties for blade (quoted string)
+---------------------- PITCH ACTUATOR PARAMETERS -------------------------------
+False         UsePitchAct   - Whether a pitch actuator should be used (flag)
+200           PitchJ        - Pitch actuator inertia (kg-m^2) [used only when UsePitchAct is true]
+20000000.0    PitchK        - Pitch actuator stiffness (kg-m^2/s^2) [used only when UsePitchAct is true]
+500000        PitchC        - Pitch actuator damping (kg-m^2/s) [used only when UsePitchAct is true]
+---------------------- OUTPUTS -------------------------------------------------
+False         SumPrint      - Print summary data to "<RootName>.sum" (flag)
+"ES10.3E2"    OutFmt        - Format used for text tabular output, excluding the time channel.
+0             NNodeOuts     - Number of nodes to output to file [0 - 9] (-)
+0             OutNd         - Nodes whose values will be output (-)
+ OutList The next line(s) contains a list of output parameters. See OutListParameters.xlsx for a listing of available output channels, (-)
+"RootFxr, RootFyr, RootFzr"
+"RootMxr, RootMyr, RootMzr"
+"TipTDxr, TipTDyr, TipTDzr"
+"TipRDxr, TipRDyr, TipRDzr"
+END
+====== Outputs for all blade stations (same ending as above for B1N1.... =========================== (optional section)
+"All"         BldNd_BlOutNd - Future feature will allow selecting a portion of the nodes to output. Not implemented yet. (-)
+ OutList_Nodal The next line(s) contains a list of output parameters.  See OutListParameters.xlsx for a listing of available output channels, (-)
+"TDxr"
+"TDyr"
+"RDxr"
+"RDyr"
+"RDzr"
+END
+---------------------------------------------------------------------------------------

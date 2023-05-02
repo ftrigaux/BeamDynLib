@@ -1,0 +1,154 @@
+--------- BEAMDYN with OpenFAST INPUT FILE -------------------------------------------
+Converted by hawc2ToBeamDyn.py from DTU_10MW_RWT_master.htc MW            - Offshore Reference Turbine
+---------------------- SIMULATION CONTROL --------------------------------------
+False         Echo          - Echo input data to "<RootName>.ech" (flag)
+True          QuasiStaticInit - Use quasistatic pre-conditioning with centripetal accelerations in initialization (flag) [dynamic solve only]
+0             rhoinf        - Numerical damping parameter for generalized-alpha integrator
+2             quadrature    - Quadrature method: 1=Gaussian; 2=Trapezoidal (switch)
+2             refine        - Refinement factor for trapezoidal quadrature (-). DEFAULT = 1 [used only when quadrature=2]
+DEFAULT       n_fact        - Factorization frequency (-). DEFAULT = 5
+DEFAULT       DTBeam        - Time step size (s).
+DEFAULT       load_retries  - Number of factored load retries before quitting the aimulation
+DEFAULT       NRMax         - Max number of iterations in Newton-Ralphson algorithm (-). DEFAULT = 10
+DEFAULT       stop_tol      - Tolerance for stopping criterion (-)
+DEFAULT       tngt_stf_fd   - Flag to use finite differenced tangent stiffness matrix (-)
+DEFAULT       tngt_stf_comp - Flag to compare analytical finite differenced tangent stiffness matrix (-)
+DEFAULT       tngt_stf_pert - perturbation size for finite differencing (-)
+DEFAULT       tngt_stf_difftol- - Maximum allowable relative difference between analytical and fd tangent stiffness (-)
+True          RotStates     - Orient states in the rotating frame during linearization? (flag) [used only when linearizing]
+---------------------- GEOMETRY PARAMETER --------------------------------------
+1             member_total  - Total number of members (-)
+100           kp_total      - Total number of key points (-) [must be at least 3]
+1, 100        kp_per_member - Member number; Number of key points in this member
+kp_xr           kp_yr           kp_zr           initial_twist  
+(m)             (m)             (m)             (deg)          
+ 7.00600000e-05	             -0	              0	 1.45000000e+01
+-3.50144713e-03	              0	 8.72378788e-01	 1.45000000e+01
+-7.07295425e-03	              0	 1.74475758e+00	 1.45000000e+01
+-1.06444614e-02	              0	 2.61713636e+00	 1.45000000e+01
+-1.42863347e-02	              0	 3.48951515e+00	 1.44975687e+01
+-1.79832433e-02	              0	 4.36189394e+00	 1.44932359e+01
+-2.16801520e-02	              0	 5.23427273e+00	 1.44889031e+01
+-2.51821199e-02	              0	 6.10665152e+00	 1.44825298e+01
+-2.72844687e-02	              0	 6.97903030e+00	 1.44615063e+01
+-2.77762877e-02	              0	 7.85140909e+00	 1.43998185e+01
+-2.81219662e-02	              0	 8.72378788e+00	 1.43344399e+01
+-2.45866452e-02	              0	 9.59616667e+00	 1.41710378e+01
+-2.10078310e-02	              0	 1.04685455e+01	 1.39968538e+01
+-1.69023369e-02	              0	 1.13409242e+01	 1.36921068e+01
+-1.27932276e-02	              0	 1.22133030e+01	 1.33864624e+01
+-8.32535780e-03	              0	 1.30856818e+01	 1.29917630e+01
+-6.53000489e-03	              0	 1.39580606e+01	 1.25234604e+01
+-5.16427619e-03	              0	 1.48304394e+01	 1.20433255e+01
+-7.72491776e-03	              0	 1.57028182e+01	 1.15203766e+01
+-1.13031732e-02	              0	 1.65751970e+01	 1.09863315e+01
+-1.48814287e-02	              0	 1.74475758e+01	 1.04522863e+01
+-1.90820938e-02	              0	 1.83199545e+01	 9.93230726e+00
+-2.78387318e-02	              0	 1.91923333e+01	 9.51529129e+00
+-3.65953697e-02	              0	 2.00647121e+01	 9.09827533e+00
+-4.53520076e-02	              0	 2.09370909e+01	 8.68125936e+00
+-5.55541516e-02	              0	 2.18094697e+01	 8.33066918e+00
+-6.75304127e-02	              0	 2.26818485e+01	 8.06160556e+00
+-7.95066737e-02	              0	 2.35542273e+01	 7.79254193e+00
+-9.14829348e-02	              0	 2.44266061e+01	 7.52347830e+00
+-1.05758702e-01	              0	 2.52989848e+01	 7.30798041e+00
+-1.20684655e-01	              0	 2.61713636e+01	 7.10762822e+00
+-1.35610608e-01	              0	 2.70437424e+01	 6.90727604e+00
+-1.50865802e-01	              0	 2.79161212e+01	 6.70977397e+00
+-1.68758277e-01	              0	 2.87885000e+01	 6.53510194e+00
+-1.86650752e-01	              0	 2.96608788e+01	 6.36042990e+00
+-2.04543227e-01	              0	 3.05332576e+01	 6.18575786e+00
+-2.23698805e-01	              0	 3.14056364e+01	 6.01658677e+00
+-2.44444209e-01	              0	 3.22780152e+01	 5.85433953e+00
+-2.65189613e-01	              0	 3.31503939e+01	 5.69209228e+00
+-2.85935016e-01	              0	 3.40227727e+01	 5.52984504e+00
+-3.09973732e-01	              0	 3.48951515e+01	 5.36928911e+00
+-3.34972610e-01	              0	 3.57675303e+01	 5.20922627e+00
+-3.59971488e-01	              0	 3.66399091e+01	 5.04916344e+00
+-3.84970366e-01	              0	 3.75122879e+01	 4.88910060e+00
+-4.09969244e-01	              0	 3.83846667e+01	 4.72903777e+00
+-4.34968122e-01	              0	 3.92570455e+01	 4.56897494e+00
+-4.59967000e-01	              0	 4.01294242e+01	 4.40891210e+00
+-4.90144967e-01	              0	 4.10018030e+01	 4.23364327e+00
+-5.20925916e-01	              0	 4.18741818e+01	 4.05660406e+00
+-5.51706866e-01	              0	 4.27465606e+01	 3.87956484e+00
+-5.82487815e-01	              0	 4.36189394e+01	 3.70252563e+00
+-6.13268764e-01	              0	 4.44913182e+01	 3.52548642e+00
+-6.44049713e-01	              0	 4.53636970e+01	 3.34844720e+00
+-6.74830662e-01	              0	 4.62360758e+01	 3.17140799e+00
+-7.09087285e-01	              0	 4.71084545e+01	 2.99149841e+00
+-7.46097459e-01	              0	 4.79808333e+01	 2.80931481e+00
+-7.83107634e-01	              0	 4.88532121e+01	 2.62713121e+00
+-8.20117808e-01	              0	 4.97255909e+01	 2.44494761e+00
+-8.57127982e-01	              0	 5.05979697e+01	 2.26276401e+00
+-8.94138157e-01	              0	 5.14703485e+01	 2.08058041e+00
+-9.31148331e-01	              0	 5.23427273e+01	 1.89839681e+00
+-9.69736957e-01	              0	 5.32151061e+01	 1.71864688e+00
+-1.01392255e+00	              0	 5.40874848e+01	 1.54752637e+00
+-1.05810815e+00	              0	 5.49598636e+01	 1.37640586e+00
+-1.10229375e+00	              0	 5.58322424e+01	 1.20528536e+00
+-1.14647935e+00	              0	 5.67046212e+01	 1.03416485e+00
+-1.19066495e+00	              0	 5.75770000e+01	 8.63044342e-01
+-1.23485054e+00	              0	 5.84493788e+01	 6.91923835e-01
+-1.27903614e+00	              0	 5.93217576e+01	 5.20803328e-01
+-1.32990357e+00	              0	 6.01941364e+01	 3.68075116e-01
+-1.38166298e+00	              0	 6.10665152e+01	 2.17802180e-01
+-1.43342240e+00	              0	 6.19388939e+01	 6.75292440e-02
+-1.48518181e+00	              0	 6.28112727e+01	-8.27436922e-02
+-1.53694123e+00	              0	 6.36836515e+01	-2.33016628e-01
+-1.58870064e+00	              0	 6.45560303e+01	-3.83289565e-01
+-1.64046006e+00	              0	 6.54284091e+01	-5.33562501e-01
+-1.69694619e+00	              0	 6.63007879e+01	-6.72777929e-01
+-1.75738138e+00	              0	 6.71731667e+01	-8.02755090e-01
+-1.81781657e+00	              0	 6.80455455e+01	-9.32732251e-01
+-1.87825176e+00	              0	 6.89179242e+01	-1.06270941e+00
+-1.93868695e+00	              0	 6.97903030e+01	-1.19268657e+00
+-1.99912215e+00	              0	 7.06626818e+01	-1.32266373e+00
+-2.05955734e+00	              0	 7.15350606e+01	-1.45264090e+00
+-2.12206595e+00	              0	 7.24074394e+01	-1.58129897e+00
+-2.19247585e+00	              0	 7.32798182e+01	-1.70493033e+00
+-2.26288575e+00	              0	 7.41521970e+01	-1.82856169e+00
+-2.33329566e+00	              0	 7.50245758e+01	-1.95219305e+00
+-2.40370556e+00	              0	 7.58969545e+01	-2.07582441e+00
+-2.47411546e+00	              0	 7.67693333e+01	-2.19945576e+00
+-2.54452536e+00	              0	 7.76417121e+01	-2.32308712e+00
+-2.61493527e+00	              0	 7.85140909e+01	-2.44671848e+00
+-2.68809117e+00	              0	 7.93864697e+01	-2.56976438e+00
+-2.76515779e+00	              0	 8.02588485e+01	-2.69197650e+00
+-2.84375688e+00	              0	 8.11312273e+01	-2.81109345e+00
+-2.92303497e+00	              0	 8.20036061e+01	-2.92883901e+00
+-3.00472290e+00	              0	 8.28759848e+01	-3.03766371e+00
+-3.08694145e+00	              0	 8.37483636e+01	-3.14373777e+00
+-3.17052770e+00	              0	 8.46207424e+01	-3.24243060e+00
+-3.25381816e+00	              0	 8.54931212e+01	-3.33699863e+00
+-3.33685000e+00	              0	 8.63655000e+01	-3.42796000e+00
+---------------------- MESH PARAMETER ------------------------------------------
+10            order_elem    - Order of interpolation (basis) function (-)
+---------------------- MATERIAL PARAMETER --------------------------------------
+"DTU10MW_BeamDyn_blade.dat" BldFile       - Name of file containing properties for blade (quoted string)
+---------------------- PITCH ACTUATOR PARAMETERS -------------------------------
+False         UsePitchAct   - Whether a pitch actuator should be used (flag)
+200           PitchJ        - Pitch actuator inertia (kg-m^2) [used only when UsePitchAct is true]
+20000000.0    PitchK        - Pitch actuator stiffness (kg-m^2/s^2) [used only when UsePitchAct is true]
+500000        PitchC        - Pitch actuator damping (kg-m^2/s) [used only when UsePitchAct is true]
+---------------------- OUTPUTS -------------------------------------------------
+False         SumPrint      - Print summary data to "<RootName>.sum" (flag)
+"ES10.3E2"    OutFmt        - Format used for text tabular output, excluding the time channel.
+0             NNodeOuts     - Number of nodes to output to file [0 - 9] (-)
+0             OutNd         - Nodes whose values will be output (-)
+ OutList The next line(s) contains a list of output parameters. See OutListParameters.xlsx for a listing of available output channels, (-)
+"RootFxr, RootFyr, RootFzr"
+"RootMxr, RootMyr, RootMzr"
+"TipTDxr, TipTDyr, TipTDzr"
+"TipRDxr, TipRDyr, TipRDzr"
+END
+====== Outputs for all blade stations (same ending as above for B1N1.... =========================== (optional section)
+"All"         BldNd_BlOutNd - Future feature will allow selecting a portion of the nodes to output. Not implemented yet. (-)
+ OutList_Nodal The next line(s) contains a list of output parameters.  See OutListParameters.xlsx for a listing of available output channels, (-)
+"TDxr"
+"TDyr"
+"RDxr"
+"RDyr"
+"RDzr"
+END
+---------------------------------------------------------------------------------------

@@ -1,0 +1,86 @@
+--------- BEAMDYN with OpenFAST INPUT FILE -------------------------------------------
+Converted by hawc2ToBeamDyn.py from DTU_10MW_RWT_master.htc MW            - Offshore Reference Turbine
+---------------------- SIMULATION CONTROL --------------------------------------
+False         Echo          - Echo input data to "<RootName>.ech" (flag)
+True          QuasiStaticInit - Use quasistatic pre-conditioning with centripetal accelerations in initialization (flag) [dynamic solve only]
+0             rhoinf        - Numerical damping parameter for generalized-alpha integrator
+2             quadrature    - Quadrature method: 1=Gaussian; 2=Trapezoidal (switch)
+1             refine        - Refinement factor for trapezoidal quadrature (-). DEFAULT = 1 [used only when quadrature=2]
+DEFAULT       n_fact        - Factorization frequency (-). DEFAULT = 5
+DEFAULT       DTBeam        - Time step size (s).
+DEFAULT       load_retries  - Number of factored load retries before quitting the aimulation
+DEFAULT       NRMax         - Max number of iterations in Newton-Ralphson algorithm (-). DEFAULT = 10
+DEFAULT       stop_tol      - Tolerance for stopping criterion (-)
+DEFAULT       tngt_stf_fd   - Flag to use finite differenced tangent stiffness matrix (-)
+DEFAULT       tngt_stf_comp - Flag to compare analytical finite differenced tangent stiffness matrix (-)
+DEFAULT       tngt_stf_pert - perturbation size for finite differencing (-)
+DEFAULT       tngt_stf_difftol- - Maximum allowable relative difference between analytical and fd tangent stiffness (-)
+True          RotStates     - Orient states in the rotating frame during linearization? (flag) [used only when linearizing]
+---------------------- GEOMETRY PARAMETER --------------------------------------
+1             member_total  - Total number of members (-)
+32            kp_total      - Total number of key points (-) [must be at least 3]
+1, 32         kp_per_member - Member number; Number of key points in this member
+kp_xr           kp_yr           kp_zr           initial_twist  
+(m)             (m)             (m)             (deg)          
+              0	             -0	              0	 1.45000000e+01
+-1.13357208e-02	              0	 2.78598387e+00	 1.45000000e+01
+-2.31112134e-02	              0	 5.57196774e+00	 1.44872259e+01
+-2.80387829e-02	              0	 8.35795161e+00	 1.43634171e+01
+-1.78293839e-02	              0	 1.11439355e+01	 1.37609206e+01
+-6.57406065e-03	              0	 1.39299194e+01	 1.25389486e+01
+-1.18803112e-02	              0	 1.67159032e+01	 1.09001951e+01
+-3.09459259e-02	              0	 1.95018871e+01	 9.36731788e+00
+-6.21217787e-02	              0	 2.22878710e+01	 8.18311816e+00
+-1.01906844e-01	              0	 2.50738548e+01	 7.35968420e+00
+-1.49711448e-01	              0	 2.78598387e+01	 6.72104314e+00
+-2.06851933e-01	              0	 3.06458226e+01	 6.16321954e+00
+-2.71881678e-01	              0	 3.34318065e+01	 5.63975446e+00
+-3.47875257e-01	              0	 3.62177903e+01	 5.12661320e+00
+-4.27710383e-01	              0	 3.90037742e+01	 4.61544479e+00
+-5.17947115e-01	              0	 4.17897581e+01	 4.07373688e+00
+-6.16247566e-01	              0	 4.45757419e+01	 3.50835359e+00
+-7.19832174e-01	              0	 4.73617258e+01	 2.93860639e+00
+-8.38025957e-01	              0	 5.01477097e+01	 2.35679426e+00
+-9.56219740e-01	              0	 5.29336935e+01	 1.77498212e+00
+-1.09659238e+00	              0	 5.57196774e+01	 1.22736542e+00
+-1.23770123e+00	              0	 5.85056613e+01	 6.80883802e-01
+-1.39502025e+00	              0	 6.12916452e+01	 1.79022068e-01
+-1.56031645e+00	              0	 6.40776290e+01	-3.00881825e-01
+-1.73593664e+00	              0	 6.68636129e+01	-7.56634162e-01
+-1.92893934e+00	              0	 6.96495968e+01	-1.17172252e+00
+-2.12433723e+00	              0	 7.24355806e+01	-1.58528708e+00
+-2.34919467e+00	              0	 7.52215645e+01	-1.98010980e+00
+-2.57405210e+00	              0	 7.80075484e+01	-2.37493253e+00
+-2.81306859e+00	              0	 8.07935323e+01	-2.76551453e+00
+-3.07076346e+00	              0	 8.35795161e+01	-3.12463593e+00
+-3.33685000e+00	              0	 8.63655000e+01	-3.42796000e+00
+---------------------- MESH PARAMETER ------------------------------------------
+10            order_elem    - Order of interpolation (basis) function (-)
+---------------------- MATERIAL PARAMETER --------------------------------------
+"DTU10MW_BeamDyn_n032_blade.dat" BldFile       - Name of file containing properties for blade (quoted string)
+---------------------- PITCH ACTUATOR PARAMETERS -------------------------------
+False         UsePitchAct   - Whether a pitch actuator should be used (flag)
+200           PitchJ        - Pitch actuator inertia (kg-m^2) [used only when UsePitchAct is true]
+20000000.0    PitchK        - Pitch actuator stiffness (kg-m^2/s^2) [used only when UsePitchAct is true]
+500000        PitchC        - Pitch actuator damping (kg-m^2/s) [used only when UsePitchAct is true]
+---------------------- OUTPUTS -------------------------------------------------
+False         SumPrint      - Print summary data to "<RootName>.sum" (flag)
+"ES10.3E2"    OutFmt        - Format used for text tabular output, excluding the time channel.
+0             NNodeOuts     - Number of nodes to output to file [0 - 9] (-)
+0             OutNd         - Nodes whose values will be output (-)
+ OutList The next line(s) contains a list of output parameters. See OutListParameters.xlsx for a listing of available output channels, (-)
+"RootFxr, RootFyr, RootFzr"
+"RootMxr, RootMyr, RootMzr"
+"TipTDxr, TipTDyr, TipTDzr"
+"TipRDxr, TipRDyr, TipRDzr"
+END
+====== Outputs for all blade stations (same ending as above for B1N1.... =========================== (optional section)
+"All"         BldNd_BlOutNd - Future feature will allow selecting a portion of the nodes to output. Not implemented yet. (-)
+ OutList_Nodal The next line(s) contains a list of output parameters.  See OutListParameters.xlsx for a listing of available output channels, (-)
+"TDxr"
+"TDyr"
+"RDxr"
+"RDyr"
+"RDzr"
+END
+---------------------------------------------------------------------------------------
