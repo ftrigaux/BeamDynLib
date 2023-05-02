@@ -134,7 +134,6 @@ void BD_writeSolToBin(BD_Data *bd, char* fileName)
 
     for (i=0;i<6;i++){
         fwrite(bd->u[i]            ,sizeof(double),bd->nxD,fid);
-        fwrite(bd->du[i]           ,sizeof(double),bd->nxD,fid);
         fwrite(bd->reactionForce[i],sizeof(double),bd->nxD,fid);
     }
 

@@ -158,6 +158,11 @@ BeamDyn.obj:             BeamDyn_IO.obj  BeamDyn_Subs.obj
 Driver_Beam_Subs.obj:   BeamDyn.obj NWTC_Library.obj
 Driver_Beam.obj:        Driver_Beam_Subs.obj
 
+BeamDynLib.obj:         BeamDynLib_Types.obj
+BeamDynLib_Types.obj:   BeamDyn.obj BeamDyn_Subs.obj
+BeamDynLib_CBind.obj:   BeamDynLib.obj
+BeamDynLib_Program.obj: BeamDynLib.obj
+
 	# Make sure the destination directory for the intermediate files exist.
 
 $(INTER_DIR):
