@@ -31,6 +31,8 @@ MODULE BeamDynLib
    CHARACTER(1024)                  :: ErrMsg           ! Error message if ErrStat /= ErrID_None
    INTEGER(IntKi), parameter        :: BD_interp_order = 1  ! order of interpolation/extrapolation
 
+   LOGICAL, PARAMETER               :: writeOutputFile = .FALSE. ! Whether to write the Fast output file for BeamDyn. Ok for debug but not ok for multiple turbine
+
    ! Module1 Derived-types variables; see Registry_Module1.txt for details
 
    !TYPE(BD_InitInputType)           :: BD_InitInput
@@ -44,7 +46,7 @@ MODULE BeamDynLib
    !TYPE(BD_InputType) ,ALLOCATABLE  :: BD_Input(:)
    !REAL(DbKi),         ALLOCATABLE  :: BD_InputTimes(:)
    !TYPE(BD_OutputType)              :: BD_Output
-   !!INTEGER(IntKi)                   :: DvrOut 
+   INTEGER(IntKi)                   :: DvrOut 
    
    !TYPE(BD_UsrDataType)             :: BD_UsrData
    
@@ -126,8 +128,10 @@ MODULE BeamDynLib
       ! CALL CreateMultiPointMeshes(DvrData,BD_InitInput,BD_InitOutput,BD_Parameter, BD_Output, BD_Input(1), ErrStat, ErrMsg)   
       ! CALL Transfer_MultipointLoads(DvrData, BD_Output, BD_Input(1), ErrStat, ErrMsg)   
       
-      ! CALL Dvr_InitializeOutputFile(DvrOut,BD_InitOutput,RootName,ErrStat,ErrMsg)
-      !   CALL CheckError(usr,usr)
+      IF (writeOutputFile) THEN
+         CALL Dvr_InitializeOutputFile(DvrOut,usr%BD_InitOutput,usr%OutputFile,ErrStat,ErrMsg)
+         CALL CheckError(usr,ErrStat,ErrMsg,"during Dvr_InitializeOutputFile() function of BeamDyn")
+      ENDIF
 
          
          ! initialize BD_Input and BD_InputTimes
@@ -164,7 +168,9 @@ MODULE BeamDynLib
                            usr%BD_ConstraintState, usr%BD_OtherState,  usr%BD_Output, usr%BD_MiscVar, ErrStat, ErrMsg)
       CALL CheckError(usr,ErrStat,ErrMsg,"during BD_CalcOutput() function of BeamDyn")
    
-   ! CALL Dvr_WriteOutputLine(bd_usrdata%t,DvrOut,BD_Parameter%OutFmt,BD_Output)
+   IF (writeOutputFile) THEN
+      CALL Dvr_WriteOutputLine(usr%t,DvrOut,usr%BD_Parameter%OutFmt,usr%BD_Output)
+   ENDIF 
    
       !.........................
       ! time marching
@@ -222,7 +228,7 @@ MODULE BeamDynLib
       integer(IntKi)               :: errStat2                ! temporary Error status of the operation
       character(*), parameter      :: RoutineName = 'Dvr_End'
 
-      !IF(DvrOut >0) CLOSE(DvrOut)
+      IF(DvrOut >0) CLOSE(DvrOut)
 
       IF ( ALLOCATED(usr%BD_Input) ) THEN
          CALL BD_End( usr%BD_Input(1), usr%BD_Parameter, usr%BD_ContinuousState, usr%BD_DiscreteState, &
@@ -795,5 +801,93 @@ SUBROUTINE BDUsr_UpdateOrientation(usr)
    usr%orientation = matmul(usr%orientation,dOri);
 
 END SUBROUTINE
+
+! Routine from the BeamDyn driver
+SUBROUTINE Dvr_InitializeOutputFile(OutUnit,IntOutput,RootName,ErrStat,ErrMsg)
+
+
+   INTEGER(IntKi),              INTENT(  OUT):: OutUnit
+   TYPE(BD_InitOutputType),     INTENT(IN   ):: IntOutput     ! Output for initialization routine
+   INTEGER(IntKi),              INTENT(  OUT):: ErrStat     ! Error status of the operation
+   CHARACTER(*),                INTENT(  OUT):: ErrMsg      ! Error message if ErrStat /= ErrID_None
+   CHARACTER(*),                INTENT(IN   ):: RootName
+
+   integer(IntKi)                            :: i      
+   integer(IntKi)                            :: numOuts
+   INTEGER(IntKi)                            :: ErrStat2                     ! Temporary Error status
+   CHARACTER(ErrMsgLen)                      :: ErrMsg2                      ! Temporary Error message
+   character(*), parameter                   :: RoutineName = 'Dvr_InitializeOutputFile'
+
+   ErrStat = ErrID_none
+   ErrMsg  = ""
+   
+   CALL GetNewUnit(OutUnit,ErrStat2,ErrMsg2)
+   CALL OpenFOutFile ( OutUnit, trim(RootName)//'.out', ErrStat2, ErrMsg2 )
+      CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+      if (ErrStat >= AbortErrLev) return
+
+   write (OutUnit,'(/,A)')  'Predictions were generated on '//CurDate()//' at '//CurTime()//' using '//trim(GetNVD(IntOutput%Ver))
+   write (OutUnit,'()' )    !print a blank line
+   
+   numOuts = size(IntOutput%WriteOutputHdr)
+   !......................................................
+   ! Write the names of the output parameters on one line:
+   !......................................................
+
+   write (OutUnit,'()')
+   write (OutUnit,'()')
+   write (OutUnit,'()')
+
+   call WrFileNR ( OutUnit, 'Time' )
+
+   do i=1,NumOuts
+      call WrFileNR ( OutUnit, tab//IntOutput%WriteOutputHdr(i) )
+   end do ! i
+
+   write (OutUnit,'()')
+
+      !......................................................
+      ! Write the units of the output parameters on one line:
+      !......................................................
+
+   call WrFileNR ( OutUnit, '(s)' )
+
+   do i=1,NumOuts
+      call WrFileNR ( Outunit, tab//trim(IntOutput%WriteOutputUnt(i)) )
+   end do ! i
+
+   write (OutUnit,'()')  
+
+
+END SUBROUTINE Dvr_InitializeOutputFile
+
+! Routine from the beamdyn driver
+SUBROUTINE Dvr_WriteOutputLine(t,OutUnit, OutFmt, Output)
+
+
+   real(DbKi)             ,  intent(in   )   :: t                    ! simulation time (s)
+   INTEGER(IntKi)         ,  intent(in   )   :: OutUnit              ! Status of error message
+   CHARACTER(*)           ,  intent(in   )   :: OutFmt
+!   real(ReKi)             ,  intent(in   )   :: output(:)            ! Rootname for the output file
+   TYPE(BD_OutputType),      INTENT(IN   )   :: Output
+      
+   ! Local variables.
+
+   integer(IntKi)                            :: errStat              ! Status of error message (we're going to ignore errors in writing to the file)
+   character(ErrMsgLen)                      :: errMsg               ! Error message if ErrStat /= ErrID_None
+   character(200)                            :: frmt                 ! A string to hold a format specifier
+   character(15)                             :: tmpStr               ! temporary string to print the time output as text
+
+   frmt = '"'//tab//'"'//trim(OutFmt)      ! format for array elements from individual modules
+   
+      ! time
+   write( tmpStr, '(F15.6)' ) t
+   call WrFileNR( OutUnit, tmpStr )
+   call WrNumAryFileNR ( OutUnit, Output%WriteOutput,  frmt, errStat, errMsg )
+   
+     ! write a new line (advance to the next line)
+   write (OutUnit,'()')
+      
+end subroutine Dvr_WriteOutputLine
 
 END MODULE BeamDynLib

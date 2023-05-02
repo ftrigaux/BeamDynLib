@@ -32,6 +32,7 @@ MODULE BeamDynLib_Types
       !REAL(DbKi),DIMENSION(:,:), ALLOCATABLE         :: du       ! Velocity variables d(u,v,w,phi,th1,th2)/dt; Size(NNodes,6)
 
       CHARACTER(1024)  :: InputFile      !< Name of the input file; remove if there is no file [-]
+      CHARACTER(1024)  :: OutputFile     !< Name of the output file; remove if there is no file [-]
 
       ! Contains the variables for the BeamDyn Analysis
       TYPE(BD_InitInputType)           :: BD_InitInput

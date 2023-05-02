@@ -30,7 +30,8 @@ MODULE BeamDynLib_CBind
         INTEGER(KIND=C_INT), INTENT(  OUT)               :: nxLoads,nxDisp        ! Returns the number of nodes for loads and displacement
 
 
-        INTEGER(IntKi) :: j
+        INTEGER(IntKi)  :: j
+        CHARACTER(512) :: RootName
 
         IF (.NOT. ALLOCATED(BD_UsrData)) ALLOCATE(BD_UsrData(nBeam))
 
@@ -62,6 +63,11 @@ MODULE BeamDynLib_CBind
             j = j + 1
         ENDDO
         BD_UsrData(idx)%InputFile = TRIM(BD_UsrData(idx)%InputFile)
+
+        ! Output file
+        CALL GetRoot(BD_UsrData(idx)%InputFile,RootName)
+        WRITE(BD_UsrData(idx)%OutputFile,"(A,A1,I0.2)") TRIM(RootName),"_",idx
+        WRITE(*,*) "Output File Name:",BD_UsrData(idx)%OutputFile
 
         CALL BeamDyn_C_Init(BD_UsrData(idx))
 
