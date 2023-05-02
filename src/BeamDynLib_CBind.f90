@@ -268,7 +268,7 @@ MODULE BeamDynLib_CBind
         CALL CheckError(BD_UsrData(idxBeam), ErrStat, ErrMsg, "during restart initialization")
 
         t  = REAL(BD_UsrData(idxBeam)%t, C_DOUBLE)
-        nt = REAL(BD_UsrData(idxBeam)%nt, C_INT)
+        nt = INT(BD_UsrData(idxBeam)%nt, C_INT)
         
 
     END SUBROUTINE readRestartFile

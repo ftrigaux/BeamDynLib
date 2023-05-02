@@ -542,8 +542,8 @@ MODULE BeamDynLib
    usr%BD_InitInput%GlbPos(1:3)      = usr%GlbPos(1:3)
    usr%BD_InitInput%RootOri(1:3,1:3) = usr%RootOri(1:3,1:3)
 
-   !usr%orientation(1:3,1:3) = usr%RootOri(1:3,1:3)
-   call eye(usr%orientation,ErrStat2,ErrMsg2)
+   usr%BD_InitInput%HubPos = 0.0_ReKi
+   usr%BD_InitInput%HubRot = 0.0_R8Ki
 
       ! Use the initial blade root orientation as the GlbRot reference orientation for all calculations?
    IF ( usr%GlbRotBladeT0 ) THEN
@@ -558,7 +558,8 @@ MODULE BeamDynLib
          CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
    END IF
 
-   usr%GlbRot(1:3,1:3) = usr%BD_InitInput%GlbRot(1:3,1:3)
+   usr%GlbRot(1:3,1:3)     = usr%BD_InitInput%GlbRot(1:3,1:3)
+   usr%BD_InitInput%HubRot = usr%BD_InitInput%GlbRot(1:3,1:3)
 
    !---------------------- INITIAL VELOCITY PARAMETER --------------------------------
    usr%BD_InitInput%RootVel(4:6) = usr%omega(1:3)
@@ -687,8 +688,8 @@ SUBROUTINE BDUsr_InputSolve(usr,i)
                                          
    ! local variables
    REAL(R8Ki)                                 :: Orientation(3,3)
-   REAL(DbKi)                                 :: dt,w,wt,cwt,swt,theta,omega(3)          ! time from start start of simulation multiplied by magnitude of rotational velocity
-   REAL(DbKi)                                 :: dOri(3,3)
+   REAL(ReKi)                                 :: w,wt,theta,cwt,swt          ! time from start start of simulation multiplied by magnitude of rotational velocity
+   REAL(ReKi)                                 :: dOri(3,3)
 
    INTEGER(IntKi)                             :: j
    
@@ -723,24 +724,24 @@ SUBROUTINE BDUsr_InputSolve(usr,i)
    !ENDIF
 
    w  = TwoNorm(usr%omega)
-   wt = w * (usr%BD_InputTimes(i) - usr%t)
-   swt = sin( wt )
-   cwt = cos( wt )
-   dOri(1,1) =  cwt
-   dOri(2,1) = -swt
-   dOri(3,1) =  0.0_R8Ki
+   wt = w * REAL((usr%BD_InputTimes(i) - usr%t),ReKi) ! Increment of rotation angle
+   theta = usr%theta_rot + wt ! Current rotation angle (based on history + increment of rotation)
+   swt = sin( theta )
+   cwt = cos( theta )
+   Orientation(1,1) =  cwt
+   Orientation(2,1) = -swt
+   Orientation(3,1) =  0.0_R8Ki
    
-   dOri(1,2) = swt
-   dOri(2,2) = cwt
-   dOri(3,2) = 0.0_R8Ki
+   Orientation(1,2) = swt
+   Orientation(2,2) = cwt
+   Orientation(3,2) = 0.0_R8Ki
    
-   dOri(1,3) = 0.0_R8Ki
-   dOri(2,3) = 0.0_R8Ki
-   dOri(3,3) = 1.0_R8Ki
+   Orientation(1,3) = 0.0_R8Ki
+   Orientation(2,3) = 0.0_R8Ki
+   Orientation(3,3) = 1.0_R8Ki
    
-   Orientation              = matmul(usr%orientation,dOri)
    if (i==1) then
-      usr%orientation(1:3,1:3) = REAL(Orientation(1:3,1:3),DbKi)
+      usr%theta_rot = usr%theta_rot + wt ! Update the rotation angle if we are not computing an estimate at another BD_inputTime
    endif
 
    !write(*,*) "t = ",usr%BD_InputTimes(i)
@@ -779,17 +780,17 @@ END SUBROUTINE BDUsr_InputSolve
 SUBROUTINE BDUsr_UpdateOrientation(usr)
 
    TYPE(BD_UsrDataType) :: usr
-   REAL(DbKi)                                 :: w,theta,omega(3),dOri(3,3)
+   REAL(ReKi)                                 :: w,theta,omega(3),dOri(3,3)
 
    integer(intKi)                             :: ErrStat2         ! temporary Error status
    character(ErrMsgLen)                       :: ErrMsg2          ! temporary Error message
 
    w     = TwoNorm(usr%omega)
-   IF (w .eq. 0.0_DbKi) THEN
+   IF (w .eq. 0.0_ReKi) THEN
       CALL eye(dOri,ErrStat2,ErrMsg2)
    ELSE
       omega(1:3) = usr%omega(1:3) / w
-      theta = w * usr%dt
+      theta = w * REAL(usr%dt,ReKi)
 
       ! Rotation matrix obtained using Rodrigues formula: R = I + sin(theta) tilde(omega) + (1-cos(theta)) tilde(omega)^2
       CALL eye(dOri,ErrStat2,ErrMsg);
@@ -797,8 +798,8 @@ SUBROUTINE BDUsr_UpdateOrientation(usr)
       dOri  =  TRANSPOSE(dOri)
    ENDIF
 
-   ! Add the new orientation
-   usr%orientation = matmul(usr%orientation,dOri);
+   !! Add the new orientation
+   !usr%orientation = matmul(usr%orientation,dOri);
 
 END SUBROUTINE
 

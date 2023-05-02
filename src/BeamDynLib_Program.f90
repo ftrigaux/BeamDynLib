@@ -29,7 +29,7 @@ PROGRAM BeamDynLib_Program
       BD_UsrData(iBeam)%RootOri(i,i)     = 1.0 ! DCM of the initial root orientation
    END DO 
 
-   BD_UsrData(iBeam)%orientation  = 0.0      ! General beam orientation matrix
+   BD_UsrData(iBeam)%theta_rot    = 0.0_ReKi ! Initial rotation angle
    BD_UsrData(iBeam)%omega        = 0.0      ! Angular velocity vector
    BD_UsrData(iBeam)%dOmega       = 0.0      ! Angular acceleration vector
    BD_UsrData(iBeam)%grav         = 0.0      ! Angular acceleration vector
@@ -101,7 +101,7 @@ PROGRAM BeamDynLib_Program
       BD_UsrData(iBeam)%RootRelInit(i,i) = 1.0 !
    END DO 
 
-   BD_UsrData(iBeam)%orientation  = 0.0      ! Angular velocity vector
+   BD_UsrData(iBeam)%theta_rot    = 0.0_ReKi ! Angular velocity vector
    BD_UsrData(iBeam)%omega        = 0.0      ! Angular velocity vector
    BD_UsrData(iBeam)%dOmega       = 0.0      ! Angular acceleration vector
    BD_UsrData(iBeam)%grav         = 0.0      ! Angular acceleration vector

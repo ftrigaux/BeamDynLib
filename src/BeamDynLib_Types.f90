@@ -16,17 +16,17 @@ MODULE BeamDynLib_Types
       REAL(DbKi)     :: dt            ! time increment
       INTEGER(IntKi) :: nt            ! number of substep
       
-      REAL(DbKi)     :: GlbPos(3)        ! Initial vector position 
-      REAL(DbKi)     :: RootOri(3,3)     ! DCM of the initial root orientation
-      REAL(DbKi)     :: GlbRot(3,3)      ! 
-      REAL(DbKi)     :: RootRelInit(3,3)
+      REAL(ReKi)     :: GlbPos(3)        ! Initial vector position 
+      REAL(ReKi)     :: RootOri(3,3)     ! DCM of the initial root orientation
+      REAL(ReKi)     :: GlbRot(3,3)      ! 
+      REAL(ReKi)     :: RootRelInit(3,3)
 
-      REAL(DbKi)     :: orientation(3,3)   ! Orientation angles
-      REAL(DbKi)     :: omega(3)           ! Angular velocity vector
-      REAL(DbKi)     :: dOmega(3)          ! Angular acceleration vector
+      REAL(ReKi)     :: theta_rot          ! Angle for the rotation
+      REAL(ReKi)     :: omega(3)           ! Angular velocity vector
+      REAL(ReKi)     :: dOmega(3)          ! Angular acceleration vector
 
       REAL(ReKi),DIMENSION(:,:), ALLOCATABLE         :: loads    ! Forces and moment at the node positions; Size(NNodes,6)
-      REAL(DbKi)                                     :: grav(3)  ! Gravity vector
+      REAL(ReKi)                                     :: grav(3)  ! Gravity vector
 
       !REAL(DbKi),DIMENSION(:,:), ALLOCATABLE         :: u        ! Displacement variables (u,v,w,phi,th1,th2); Size(NNodes,6)
       !REAL(DbKi),DIMENSION(:,:), ALLOCATABLE         :: du       ! Velocity variables d(u,v,w,phi,th1,th2)/dt; Size(NNodes,6)
@@ -1376,7 +1376,7 @@ SUBROUTINE BD_CreateCheckpoint_T(t_initial, n_t_global, NumBeams, BD_Data, Check
    IF ( ALLOCATED(DbKiBuf)  ) DEALLOCATE(DbKiBuf)
    IF ( ALLOCATED(IntKiBuf) ) DEALLOCATE(IntKiBuf)
 
-   WRITE (unOut, IOSTAT=ErrStat2)   BD_Data%orientation
+   WRITE (unOut, IOSTAT=ErrStat2)   BD_Data%theta_rot
 
    CLOSE(unOut)
    unOut = -1
@@ -1494,8 +1494,8 @@ SUBROUTINE BD_RestoreFromCheckpoint_T(t_initial, n_t_global, NumBeams, BD_Data, 
          CALL SetErrStat(ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
    END IF
 
-   READ (unIn, IOSTAT=ErrStat2)   BD_Data%orientation
-   write(*,*) "orientation = ",BD_Data%orientation
+   READ (unIn, IOSTAT=ErrStat2)   BD_Data%theta_rot
+   write(*,*) "Rotation angle = ",BD_Data%theta_rot
 
    !END DO
 
