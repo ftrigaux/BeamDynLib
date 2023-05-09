@@ -507,11 +507,19 @@ MODULE BeamDynLib
    DO i=1,usr%BD_Output%BldMotion%Nnodes
       SELECT CASE (usr%BD_Parameter%BldMotionNodeLoc)
       CASE (BD_MESH_FE)
-         F(1:3,i) = MATMUL(usr%BD_Output%BldMotion%Orientation(:,:,i), usr%BD_MiscVar%BldInternalForceFE(1:3,i))
-         F(4:6,i) = MATMUL(usr%BD_Output%BldMotion%Orientation(:,:,i), usr%BD_MiscVar%BldInternalForceFE(4:6,i))
+         ! -- Expressed in local airfoil frame --
+         !F(1:3,i) = MATMUL(usr%BD_Output%BldMotion%Orientation(:,:,i), usr%BD_MiscVar%BldInternalForceFE(1:3,i))
+         !F(4:6,i) = MATMUL(usr%BD_Output%BldMotion%Orientation(:,:,i), usr%BD_MiscVar%BldInternalForceFE(4:6,i))
+         ! -- Expressed in root frame --
+         F(1:3,i) = MATMUL(usr%BD_MiscVar%u2%RootMotion%Orientation(:,:,1), usr%BD_MiscVar%BldInternalForceFE(1:3,i))
+         F(4:6,i) = MATMUL(usr%BD_MiscVar%u2%RootMotion%Orientation(:,:,1), usr%BD_MiscVar%BldInternalForceFE(4:6,i))
       CASE (BD_MESH_QP)
-         F(1:3,i) = MATMUL(usr%BD_Output%BldMotion%Orientation(:,:,i), usr%BD_MiscVar%BldInternalForceQP(1:3,i))
-         F(4:6,i) = MATMUL(usr%BD_Output%BldMotion%Orientation(:,:,i), usr%BD_MiscVar%BldInternalForceQP(4:6,i))
+         ! -- Expressed in local airfoil frame --
+         !F(1:3,i) = MATMUL(usr%BD_Output%BldMotion%Orientation(:,:,i), usr%BD_MiscVar%BldInternalForceQP(1:3,i))
+         !F(4:6,i) = MATMUL(usr%BD_Output%BldMotion%Orientation(:,:,i), usr%BD_MiscVar%BldInternalForceQP(4:6,i))
+         ! -- Expressed in root frame --
+         F(1:3,i) = MATMUL(usr%BD_MiscVar%u2%RootMotion%Orientation(:,:,1), usr%BD_MiscVar%BldInternalForceQP(1:3,i))
+         F(4:6,i) = MATMUL(usr%BD_MiscVar%u2%RootMotion%Orientation(:,:,1), usr%BD_MiscVar%BldInternalForceQP(4:6,i))
       END SELECT
    END DO
 
