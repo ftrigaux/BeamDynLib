@@ -30,6 +30,7 @@ else
 
 	REGISTRY   =
 	LAPACK_LINK  = -llapack -lblas
+	#LAPACK_LINK  = -lopenblas
 endif
 
 BD_DIR = src
@@ -152,6 +153,7 @@ NWTC_LAPACK.obj:            NWTC_Base.obj
 
 BeamDyn_Types.obj:       NWTC_Library.obj  $(BD_DIR)/BeamDyn_Types.f90
 BeamDyn_Subs.obj:        BeamDyn_Types.obj
+BeamDyn_BldNdOuts_IO.obj:NWTC_Library.obj BeamDyn_Subs.obj
 BeamDyn_IO.obj:          BeamDyn_Types.obj  BeamDyn_Subs.obj BeamDyn_BldNdOuts_IO.obj
 BeamDyn.obj:             BeamDyn_IO.obj  BeamDyn_Subs.obj
 
