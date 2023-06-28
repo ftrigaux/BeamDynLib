@@ -113,9 +113,9 @@ void BD_getReactionForce(BD_Data *bd)
     UNRAVEL2(bd,reactionForce,6,bd->nxD,double);
 }
 
-void BD_setBC(BD_Data *bd)
+void BD_setBC(BD_Data *bd, int forceTheta)
 {
-    f_setBC(bd->idx, bd->omega, bd->domega);
+    f_setBC(bd->idx, bd->omega, bd->domega, forceTheta, bd->theta_rot);
 }
 
 void BD_writeSolToBin(BD_Data *bd, char* fileName)
@@ -280,7 +280,7 @@ int main(int argc, char *argv[])
         for (i=0;i<nt_glob;i++){
             start_t = clock();
             bd[k]->omega[0] = -1.0;
-            BD_setBC(bd[k]);
+            BD_setBC(bd[k], 0); // forceTheta = 0 -> integration of omega is done in BeamDyn
             BD_solve(bd[k]);
             end_t = clock();
             //printf("Done solving in %1.3e seconds!\n",(double)(end_t - start_t) / CLOCKS_PER_SEC);

@@ -88,7 +88,7 @@ typedef struct
     double  **u, **du;            // Displacement and structural velocity output (at xDisp) [m]
     double  **reactionForce;        // Internal reaction loads (output) (F,M)
 
-    double  omega[3], domega[3], gravity[3];  // Angular velocity and acceleration [rad/s]
+    double  theta_rot, omega[3], domega[3], gravity[3];  // Angular velocity and acceleration [rad/s]
      
 } BD_Data;
 
@@ -108,7 +108,7 @@ void BD_getDisplacement(BD_Data *bd);
 
 void BD_getReactionForce(BD_Data *bd);
 
-void BD_setBC(BD_Data *bd);
+void BD_setBC(BD_Data *bd, int forceTheta);
 
 void BD_writeSolToBin(BD_Data *bd, char* fileName);
 
@@ -137,7 +137,7 @@ void f_getDisplacement(double**,double**,double**,int);
 
 void f_getReactionForce(double**,double**,int);
 
-void f_setBC(int, double[3], double[3]);
+void f_setBC(int, double[3], double[3], int, double);
 
 void f_writeRestartFile(int, char*);
 

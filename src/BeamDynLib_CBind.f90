@@ -51,6 +51,7 @@ MODULE BeamDynLib_CBind
             IF( .NOT. PRESENT(RootOri))     BD_UsrData(idx)%RootOri(j,j)     = 1.0
         END DO 
 
+        BD_UsrData(idx)%theta_rot = 0.0;
         IF(PRESENT(omega))   THEN; BD_UsrData(idx)%omega(:)    =  omega(:);   ELSE; BD_UsrData(idx)%omega    = 0.0; ENDIF    ! Angular velocity vector
         IF(PRESENT(domega))  THEN; BD_UsrData(idx)%domega(:)   = domega(:);   ELSE; BD_UsrData(idx)%domega   = 0.0; ENDIF    ! Angular acceleration vector
         IF(PRESENT(gravity)) THEN; BD_UsrData(idx)%grav(:)     = gravity(:);  ELSE; BD_UsrData(idx)%grav     = 0.0; ENDIF    ! Angular acceleration vector
@@ -204,16 +205,21 @@ MODULE BeamDynLib_CBind
 
     ! This function should be used before every "solve" to set the orientation and displacement of the root
     SUBROUTINE setBC(idxBeam,            &
-                     omega, domega)  BIND(C,NAME="f_setBC")
+                     omega, domega,      &
+                     forceTheta, theta_rot)  BIND(C,NAME="f_setBC")
 
         INTEGER(C_INT),INTENT(IN),VALUE :: idxBeam
 
-        REAL(KIND=C_DOUBLE)         :: omega(3)
-        REAL(KIND=C_DOUBLE)         :: dOmega(3)
+        REAL(KIND=C_DOUBLE)          :: omega(3)
+        REAL(KIND=C_DOUBLE)          :: dOmega(3)
+        INTEGER(KIND=C_INT) , VALUE  :: forceTheta
+        REAL(KIND=C_DOUBLE) , VALUE  :: theta_rot
 
         BD_UsrData(idxBeam)%omega(1:3)  = omega(1:3);
         BD_UsrData(idxBeam)%dOmega(1:3) = dOmega(1:3);
-
+        IF (forceTheta .eq. 1) THEN
+            BD_UsrData(idxBeam)%theta_rot = REAL(theta_rot,ReKi);
+        ENDIF
     END SUBROUTINE setBC
 
 
