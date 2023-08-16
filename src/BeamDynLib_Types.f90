@@ -24,6 +24,7 @@ MODULE BeamDynLib_Types
       REAL(ReKi)     :: theta_rot          ! Angle for the rotation
       REAL(ReKi)     :: omega(3)           ! Angular velocity vector
       REAL(ReKi)     :: dOmega(3)          ! Angular acceleration vector
+      REAL(ReKi)     :: PAngInp_rad        ! Pitch angle input command in radians
 
       REAL(ReKi),DIMENSION(:,:), ALLOCATABLE         :: loads    ! Forces and moment at the node positions; Size(NNodes,6)
       REAL(ReKi)                                     :: grav(3)  ! Gravity vector

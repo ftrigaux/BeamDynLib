@@ -92,7 +92,7 @@ class PyBeamDyn(ct.CDLL):
         self.f_getReactionForce.argtypes = [ND_POINTER_2,ND_POINTER_2, ct.c_int]
         self.f_getReactionForce.restype  = None
 
-        self.f_setBC.argtypes = [ct.c_int,ND_ARRAY_3,ND_ARRAY_3,ct.c_int,ct.c_double]
+        self.f_setBC.argtypes = [ct.c_int,ND_ARRAY_3,ND_ARRAY_3,ct.c_int,ct.c_double,ct.c_double]
         self.f_setBC.restype  = None
 
         self.nxLoads = -1;
@@ -123,8 +123,8 @@ class PyBeamDyn(ct.CDLL):
     def setLoads(self,loads,idxBeam):
         self.f_setLoads(NP_F_2D(np.asfortranarray(loads)),idxBeam)
 
-    def setBC(self,idxBeam,omega,dOmega,forceTheta=0,theta_rot=0.0):
-        self.f_setBC(idxBeam,NP_F_3(omega),NP_F_3(dOmega),forceTheta,theta_rot)
+    def setBC(self,idxBeam,omega,dOmega,forceTheta=0,theta_rot=0.0,pitch_rad=0.0):
+        self.f_setBC(idxBeam,NP_F_3(omega),NP_F_3(dOmega),forceTheta,theta_rot,pitch_rad)
 
     def getDisplacement(self,idxBeam):
         x  = np.zeros((3,self.nxDisp),order='F');

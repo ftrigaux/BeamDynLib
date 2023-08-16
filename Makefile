@@ -165,7 +165,7 @@ BeamDynLib_Types.obj:   BeamDyn.obj BeamDyn_Subs.obj
 BeamDynLib_CBind.obj:   BeamDynLib.obj
 BeamDynLib_Program.obj: BeamDynLib.obj
 
-	# Make sure the destination directory for the intermediate files exist.
+# Make sure the destination directory for the intermediate files exist.
 
 $(INTER_DIR):
 	$(MD_CMD) $(INTER_DIR)

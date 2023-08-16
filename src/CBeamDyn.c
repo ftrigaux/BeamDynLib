@@ -20,6 +20,9 @@ int i_,j_,k_; // iterator for macros
 
 void BD_initBeamDyn(BD_Data *bd)
 {
+    bd->theta_rot = 0.0;
+    bd->pitch_rad = 0.0;
+    
     f_initBeamDyn(bd->nBeam,bd->inputFile,bd->idx,
                 &bd->dt, &bd->nt, &bd->t,          
                 &bd->DynamicSolve,       
@@ -115,7 +118,7 @@ void BD_getReactionForce(BD_Data *bd)
 
 void BD_setBC(BD_Data *bd, int forceTheta)
 {
-    f_setBC(bd->idx, bd->omega, bd->domega, forceTheta, bd->theta_rot);
+    f_setBC(bd->idx, bd->omega, bd->domega, forceTheta, bd->theta_rot, bd->pitch_rad);
 }
 
 void BD_writeSolToBin(BD_Data *bd, char* fileName)

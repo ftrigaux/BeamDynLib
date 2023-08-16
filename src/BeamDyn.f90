@@ -205,6 +205,15 @@ SUBROUTINE BD_Init( InitInp, u, p, x, xd, z, OtherState, y, MiscVar, Interval, I
       CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
 
 
+      ! Define and initialize system inputs (set up and initialize input meshes) here:
+   call Init_u(InitInp, p, u, ErrStat2, ErrMsg2)
+      CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+
+      if (ErrStat >= AbortErrLev) then
+         call cleanup()
+         return
+      end if
+
       ! Actuator
    p%UsePitchAct = InputFileData%UsePitchAct
 
@@ -233,16 +242,6 @@ SUBROUTINE BD_Init( InitInp, u, p, x, xd, z, OtherState, y, MiscVar, Interval, I
       xd%thetaP = -temp_CRV(3)
       xd%thetaPD = 0.0_BDKi
    end if
-
-
-      ! Define and initialize system inputs (set up and initialize input meshes) here:
-   call Init_u(InitInp, p, u, ErrStat2, ErrMsg2)
-      CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
-
-      if (ErrStat >= AbortErrLev) then
-         call cleanup()
-         return
-      end if
 
       ! allocate and initialize continuous states (need to do this after initializing inputs):
    call Init_ContinuousStates(p, u, x, ErrStat2, ErrMsg2)
