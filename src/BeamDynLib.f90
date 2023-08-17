@@ -698,16 +698,15 @@ SUBROUTINE BDUsr_InputSolve(usr,i)
                                          
    ! local variables
    REAL(R8Ki)                                 :: Orientation(3,3)
-   REAL(ReKi)                                 :: w,wt,theta,cw,sw,cp,sp,omega(3)          ! time from start start of simulation multiplied by magnitude of rotational velocity
-   REAL(ReKi)                                 :: dOri(3,3)
+   REAL(ReKi)                                 :: w,wt,theta,omega(3)    ! time from start start of simulation multiplied by magnitude of rotational velocity
+   REAL(ReKi)                                 :: omegaP(3),alphaP(3)    ! pitch rotation velocity and acceleration
+   REAL(ReKi)                                 :: temp_R(3,3), temp_cc(3), u_theta_pitch
 
    INTEGER(IntKi)                             :: j
    
    integer(intKi)                             :: ErrStat2         ! temporary Error status
    character(ErrMsgLen)                       :: ErrMsg2          ! temporary Error message
    character(*), parameter                    :: RoutineName = 'BDUsr_InputSolve'
-
-   REAL(ReKi)                                 :: temp_R(3,3), temp_cc(3), u_theta_pitch
    
    ErrStat = ErrID_None
    ErrMsg  = ''
@@ -715,27 +714,7 @@ SUBROUTINE BDUsr_InputSolve(usr,i)
    !.............................
    ! Set up u%RootMotion: 
    !.............................
-   
    ! Compute the orientation at the center of rotation 
-   !dt  = usr%BD_InputTimes(i) - usr%t
-   !IF (i == 1) THEN
-   !   Orientation(1:3,1:3) = usr%orientation(1:3,1:3);
-   !ELSE
-   !   w     = TwoNorm(usr%omega)
-   !   IF (w .eq. 0.0_DbKi) THEN
-   !      CALL eye(dOri,ErrStat2,ErrMsg2)
-   !   ELSE
-   !      theta = - w * (i-1) * usr%dt
-   !      omega(1:3) = usr%omega(1:3) / w
-   !      ! Rotation matrix obtained using Rodrigues formula: R = I + sin(theta) tilde(omega) + (1-cos(theta)) tilde(omega)^2
-   !      CALL eye(dOri,ErrStat2,ErrMsg);
-   !      dOri  = dOri + sin(theta) * SkewSymMat(omega) + (1-cos(theta)) * MATMUL(SkewSymMat(omega),SkewSymMat(omega))
-   !      dOri = TRANSPOSE(dOri)
-   !   ENDIF
-   !   Orientation = matmul(usr%orientation,dOri);
-   !ENDIF
-
-   ! Rotation matrix due to the rotation along omega Ro
    w  = TwoNorm(usr%omega)
    wt = w * REAL((usr%BD_InputTimes(i) - usr%t),ReKi) ! Increment of rotation angle
    theta = usr%theta_rot + wt ! Current rotation angle (based on history + increment of rotation)
@@ -749,33 +728,10 @@ SUBROUTINE BDUsr_InputSolve(usr,i)
       Orientation  = Orientation + sin(theta) * SkewSymMat(omega) + (1-cos(theta)) * MATMUL(SkewSymMat(omega),SkewSymMat(omega))
       Orientation  =  TRANSPOSE(Orientation)
    ENDIF
-   
-   ! Rotation matrix due to pitch Rp:
-   sp = sin( usr%PAngInp_rad )
-   cp = cos( usr%PAngInp_rad )
-      
-   dOri(1,1) =  cp
-   dOri(2,1) =  -sp
-   dOri(3,1) =  0.0_R8Ki
-   
-   dOri(1,2) =  sp
-   dOri(2,2) =  cp
-   dOri(3,2) =  0.0_R8Ki
-   
-   dOri(1,3) =  0.0_R8Ki
-   dOri(2,3) =  0.0_R8Ki
-   dOri(3,3) =  1.0_R8Ki
-
-   Orientation = MATMUL(dOri,Orientation(:,:))
 
    if (i==1) then
       usr%theta_rot = usr%theta_rot + wt ! Update the rotation angle if we are not computing an estimate at another BD_inputTime
    endif
-
-   !write(*,*) "t = ",usr%BD_InputTimes(i)
-   !write(*,*) "Orientation = "
-   !write(*,"(3F10.5)") Orientation
-   !write(*,"(3F10.5)") dOri
       
    usr%RotationCenter%Orientation(:,:,1) = matmul(Orientation, matmul(usr%RotationCenter%RefOrientation(:,:,1),usr%RootRelInit))
    usr%RotationCenter%RotationVel(:,1)   = usr%omega(1:3)
@@ -806,23 +762,22 @@ SUBROUTINE BDUsr_InputSolve(usr,i)
    !.............................
    ! Pitch angle input
    !.............................
-   ! Rotation around pitch axis that must be added to the blade root motion
-   !usr%PAngInp_rad = 2.14_R8Ki
-   !swt = sin( usr%PAngInp_rad )
-   !cwt = cos( usr%PAngInp_rad )
-   !dOri(1,1) =  1.0_R8Ki
-   !dOri(2,1) =  0.0_R8Ki
-   !dOri(3,1) =  0.0_R8Ki
-   !
-   !dOri(1,2) =  0.0_R8Ki
-   !dOri(2,2) =  cwt
-   !dOri(3,2) =  -swt
-   !
-   !dOri(1,3) =  0.0_R8Ki
-   !dOri(2,3) =  swt
-   !dOri(3,3) =  cwt
+   ! Rotation around pitch axis that must be added to the blade root motion.
+   ! This must be done after the transfer from the rotation center mesh!
+   temp_R = MATMUL(usr%BD_Input(i)%RootMotion%Orientation(:,:,1),TRANSPOSE(usr%BD_Input(i)%HubMotion%Orientation(:,:,1)))
+   temp_cc = EulerExtract(temp_R)   != Hub_theta_Root
+   u_theta_pitch = -temp_cc(3)
 
-   !usr%BD_Input(i)%RootMotion%Orientation(:,:,1) = MATMUL(TRANSPOSE(dOri),usr%BD_Input(i)%RootMotion%Orientation(:,:,1))
+   ! If the rotationVel and acceleration due to pitch are important for the structural dynamics, they should be provided. Here, forced to zero
+   omegaP = 0.0
+   alphaP = 0.0
+   usr%BD_Input(i)%RootMotion%RotationVel(:,1) = usr%BD_Input(i)%RootMotion%RotationVel(:,1) - omegaP * usr%BD_Input(i)%RootMotion%Orientation(3,:,1)
+   usr%BD_Input(i)%RootMotion%RotationAcc(:,1) = usr%BD_Input(i)%RootMotion%RotationAcc(:,1) - alphaP * usr%BD_Input(i)%RootMotion%Orientation(3,:,1)
+
+   ! Add the pitch angle
+   temp_cc(3) = -usr%PAngInp_rad ! Minus sign?
+   temp_R = EulerConstruct(temp_cc)
+   usr%BD_Input(i)%RootMotion%Orientation(:,:,1) = MATMUL(temp_R,usr%BD_Input(i)%HubMotion%Orientation(:,:,1))
 
    ! ! This is just for check: 
    ! temp_R = MATMUL(usr%BD_Input(i)%RootMotion%Orientation(:,:,1),TRANSPOSE(usr%BD_Input(i)%HubMotion%Orientation(:,:,1)))
