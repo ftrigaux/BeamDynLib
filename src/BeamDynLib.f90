@@ -750,14 +750,6 @@ SUBROUTINE BDUsr_InputSolve(usr,i)
    ! 
    ! u%PointLoad%Force(1:3,u%PointLoad%NNodes)  = u%PointLoad%Force(1:3,u%PointLoad%NNodes)  + DvrData%TipLoad(1:3)
    ! u%PointLoad%Moment(1:3,u%PointLoad%NNodes) = u%PointLoad%Moment(1:3,u%PointLoad%NNodes) + DvrData%TipLoad(4:6)
-   
-   !.............................
-   ! LINE2 mesh: DistrLoad
-   !.............................
-   DO j=1,usr%BD_Input(i)%DistrLoad%NNodes
-      usr%BD_Input(i)%DistrLoad%Force(:,j) =  MATMUL(TRANSPOSE(usr%BD_Input(i)%RootMotion%Orientation(:,:,1)), usr%loads(1:3,j))
-      usr%BD_Input(i)%DistrLoad%Moment(:,j)=  MATMUL(TRANSPOSE(usr%BD_Input(i)%RootMotion%Orientation(:,:,1)), usr%loads(4:6,j))
-   ENDDO
 
    !.............................
    ! Pitch angle input
@@ -778,6 +770,14 @@ SUBROUTINE BDUsr_InputSolve(usr,i)
    temp_cc(3) = -usr%PAngInp_rad ! Minus sign?
    temp_R = EulerConstruct(temp_cc)
    usr%BD_Input(i)%RootMotion%Orientation(:,:,1) = MATMUL(temp_R,usr%BD_Input(i)%HubMotion%Orientation(:,:,1))
+
+   !.............................
+   ! LINE2 mesh: DistrLoad
+   !.............................
+   DO j=1,usr%BD_Input(i)%DistrLoad%NNodes
+      usr%BD_Input(i)%DistrLoad%Force(:,j) =  MATMUL(TRANSPOSE(usr%BD_Input(i)%RootMotion%Orientation(:,:,1)), usr%loads(1:3,j))
+      usr%BD_Input(i)%DistrLoad%Moment(:,j)=  MATMUL(TRANSPOSE(usr%BD_Input(i)%RootMotion%Orientation(:,:,1)), usr%loads(4:6,j))
+   ENDDO
 
    ! ! This is just for check: 
    ! temp_R = MATMUL(usr%BD_Input(i)%RootMotion%Orientation(:,:,1),TRANSPOSE(usr%BD_Input(i)%HubMotion%Orientation(:,:,1)))
