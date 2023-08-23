@@ -767,7 +767,7 @@ SUBROUTINE BDUsr_InputSolve(usr,i)
    usr%BD_Input(i)%RootMotion%RotationAcc(:,1) = usr%BD_Input(i)%RootMotion%RotationAcc(:,1) - alphaP * usr%BD_Input(i)%RootMotion%Orientation(3,:,1)
 
    ! Add the pitch angle
-   temp_cc(3) = -usr%PAngInp_rad ! Minus sign?
+   temp_cc(3) = usr%PAngInp_rad ! Minus sign?
    temp_R = EulerConstruct(temp_cc)
    usr%BD_Input(i)%RootMotion%Orientation(:,:,1) = MATMUL(temp_R,usr%BD_Input(i)%HubMotion%Orientation(:,:,1))
 
