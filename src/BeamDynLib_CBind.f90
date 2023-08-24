@@ -86,8 +86,11 @@ MODULE BeamDynLib_CBind
         INTEGER(KIND=C_INT), INTENT(IN), OPTIONAL        :: nt
         
         IF(PRESENT(dt)) BD_UsrData(idx)%dt = dt
+        IF(PRESENT(dt)) BD_UsrData(idx)%BD_Parameter%dt = dt
         IF(PRESENT(nt)) BD_UsrData(idx)%nt = nt
         IF(PRESENT(t))  BD_UsrData(idx)%t  = t
+
+        CALL BD_TiSchmComputeCoefficients2(BD_UsrData(idx)%BD_Parameter) ! Need to recompute the generalized alpha time scheme coefficients
  
     END SUBROUTINE BDrefresh
 

@@ -107,12 +107,8 @@ class PyBeamDyn(ct.CDLL):
         self.nxDisp  = nxDisp.value;
         return nxLoads.value, nxDisp.value
 
-    def refresh(self,idxBeam,dt=None,nt=None,t=None,omega=None,domega=None):
-        nxLoads = ct.c_int(0); nxDisp = ct.c_int(0);
+    def refresh(self,idxBeam,dt=None,nt=None,t=None):
         self.f_refresh(idxBeam,opt(dt,ct.c_double),opt(nt,ct.c_int),opt(t,ct.c_double));
-        self.nxLoads = nxLoads.value;
-        self.nxDisp  = nxDisp.value;
-        return nxLoads.value, nxDisp.value
 
     def getPositions(self):
         xLoads = np.zeros((3,self.nxLoads),order='F')

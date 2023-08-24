@@ -909,4 +909,49 @@ SUBROUTINE Dvr_WriteOutputLine(t,OutUnit, OutFmt, Output)
       
 end subroutine Dvr_WriteOutputLine
 
+! Recomputes the Time Stepping scheme coefficient when dt is updated in BD_refresh
+! This is copy-pasted from BeamDyn.f90:BD_TiSchmComputeCoefficients. But the original function is PRIVATE, so I copied it here to avoid having to modify the BD sources
+! If the routine in BeamDyn.90 is changed, you should changed this one too.
+SUBROUTINE BD_TiSchmComputeCoefficients2(p)
+
+      TYPE(BD_ParameterType), INTENT(INOUT) :: p 
+
+      REAL(DbKi)                  :: tr0
+      REAL(DbKi)                  :: tr1
+      REAL(DbKi)                  :: tr2
+      REAL(DbKi)                  :: alfam      ! \alpha_M
+      REAL(DbKi)                  :: alfaf      ! \alpha_F
+      REAL(DbKi)                  :: gama
+      REAL(DbKi)                  :: beta
+      REAL(DbKi)                  :: oalfaM     ! 1 - \alpha_M
+      REAL(DbKi)                  :: deltat2    ! {\delta t}^2 = dt^2
+
+      ! Bauchau equations 17.39
+      tr0 = p%rhoinf + 1.0_BDKi
+      alfam = (2.0_BDKi * p%rhoinf - 1.0_BDKi) / tr0
+      alfaf = p%rhoinf / tr0
+
+      ! Bauchau equations 17.40
+      gama = 0.5_BDKi - alfam + alfaf
+      beta = 0.25 * (1.0_BDKi - alfam + alfaf)**2
+
+      ! The coefficents are then found using equations 17.41a - 17.41c
+      deltat2 = p%dt**2
+      oalfaM = 1.0_BDKi - alfam
+      tr0 = alfaf / oalfaM
+      tr1 = alfam / oalfaM
+      tr2 = (1.0_BDKi - alfaf) / oalfaM
+
+      p%coef(1) = beta * tr0 * deltat2
+      p%coef(2) = (0.5_BDKi - beta/oalfaM) * deltat2
+      p%coef(3) = gama * tr0 * p%dt
+      p%coef(4) = (1.0_BDKi - gama / oalfaM) * p%dt
+      p%coef(5) = tr0
+      p%coef(6) = -tr1
+      p%coef(7) = gama * tr2 * p%dt
+      p%coef(8) = beta * tr2 * deltat2
+      p%coef(9) = tr2
+
+END SUBROUTINE
+
 END MODULE BeamDynLib
