@@ -151,6 +151,22 @@ MODULE BeamDynLib
             CALL CheckError(usr,ErrStat,ErrMsg,"during inputSolve() function of BeamDyn")
       END DO
 
+      ! Write VTK reference if requested (ref is (0,0,0)
+      if (usr%WrVTK > 0) then
+         call SetVTKvars(usr)
+         call MeshWrVTKreference( (/0.0_SiKi, 0.0_SiKi, 0.0_SiKi /), usr%BD_Output%BldMotion,   trim(usr%VTK_OutFileRoot)//'_BldMotion', ErrStat, ErrMsg );  CALL CheckError(usr,ErrStat,ErrMsg,"during MeshWrVTKreference() function of BeamDyn")
+         call MeshWrVTKreference( (/0.0_SiKi, 0.0_SiKi, 0.0_SiKi /), usr%BD_Input(1)%PointLoad, trim(usr%VTK_OutFileRoot)//'_PointLoad', ErrStat, ErrMsg );  CALL CheckError(usr,ErrStat,ErrMsg,"during MeshWrVTKreference() function of BeamDyn")
+         call MeshWrVTKreference( (/0.0_SiKi, 0.0_SiKi, 0.0_SiKi /), usr%BD_Input(1)%DistrLoad, trim(usr%VTK_OutFileRoot)//'_DistrLoad', ErrStat, ErrMsg );  CALL CheckError(usr,ErrStat,ErrMsg,"during MeshWrVTKreference() function of BeamDyn")
+      endif
+         ! Write VTK reference if requested (ref is (0,0,0)
+      if (usr%WrVTK == 2) then
+         usr%n_t_vtk = 0
+         call MeshWrVTK( (/0.0_SiKi, 0.0_SiKi, 0.0_SiKi /), usr%BD_Output%BldMotion,   trim(usr%VTK_OutFileRoot)//'_BldMotion',  usr%n_t_vtk, .true., ErrStat, ErrMsg, usr%VTK_tWidth )
+         call MeshWrVTK( (/0.0_SiKi, 0.0_SiKi, 0.0_SiKi /), usr%BD_Input(1)%PointLoad, trim(usr%VTK_OutFileRoot)//'_PointLoad',  usr%n_t_vtk, .true., ErrStat, ErrMsg, usr%VTK_tWidth )
+         call MeshWrVTK( (/0.0_SiKi, 0.0_SiKi, 0.0_SiKi /), usr%BD_Input(1)%DistrLoad, trim(usr%VTK_OutFileRoot)//'_DistrLoad',  usr%n_t_vtk, .true., ErrStat, ErrMsg, usr%VTK_tWidth )
+         CALL CheckError(usr,ErrStat,ErrMsg,"during MeshWrVTK() function of BeamDyn")
+      endif
+
 
    END SUBROUTINE BeamDyn_C_Init
 
@@ -212,6 +228,17 @@ MODULE BeamDynLib
         CALL CheckError(usr,ErrStat,ErrMsg,"during BD_CalcOutput() function of BeamDyn")
 
      !CALL Dvr_WriteOutputLine(t_global,DvrOut,BD_Parameter%OutFmt,BD_Output)
+
+     if (usr%WrVTK == 2) then
+         if ( MOD( NINT(usr%t / usr%dt), usr%n_VTKTime ) == 0 ) then
+            usr%n_t_vtk = usr%n_t_vtk + 1
+            call MeshWrVTK( (/0.0_SiKi, 0.0_SiKi, 0.0_SiKi /), usr%BD_Output%BldMotion,   trim(usr%VTK_OutFileRoot)//'_BldMotion', usr%n_t_vtk, .true., ErrStat, ErrMsg, usr%VTK_tWidth )
+            call MeshWrVTK( (/0.0_SiKi, 0.0_SiKi, 0.0_SiKi /), usr%BD_Input(1)%PointLoad, trim(usr%VTK_OutFileRoot)//'_PointLoad', usr%n_t_vtk, .true., ErrStat, ErrMsg, usr%VTK_tWidth )
+            call MeshWrVTK( (/0.0_SiKi, 0.0_SiKi, 0.0_SiKi /), usr%BD_Input(1)%DistrLoad, trim(usr%VTK_OutFileRoot)//'_DistrLoad', usr%n_t_vtk, .true., ErrStat, ErrMsg, usr%VTK_tWidth )
+            CALL CheckError(usr,ErrStat,ErrMsg,"during MeshWrVTK() function of BeamDyn")
+
+         endif
+      endif
 
    ENDDO
 
@@ -281,6 +308,36 @@ MODULE BeamDynLib
       end if
          
    end SUBROUTINE CheckError
+
+   SUBROUTINE SetVTKvars(usr)
+
+      TYPE(BD_UsrDataType), INTENT(INOUT) :: usr
+      real(R8Ki)  :: TmpTime
+      real(R8Ki)  :: TmpRate
+
+      usr%VTK_OutFileRoot = 'bd_vtk/'//trim(usr%OutputFile)
+      usr%n_t_vtk = 0    ! first VTK output number
+
+      ! now save the number of time steps between VTK file output:
+      if (usr%VTK_fps == 0) then
+         usr%n_VTKTime = HUGE(usr%n_VTKTime)
+      else
+         TmpTime = 1.0_R8Ki / usr%VTK_fps
+         usr%n_VTKTime = NINT( TmpTime / usr%dt )
+         ! I'll warn if p%n_VTKTime*p%DT is not TmpTime
+         IF (usr%WrVTK == 2) THEN
+            TmpRate = usr%n_VTKTime*usr%dt
+            if (.not. EqualRealNos(TmpRate, TmpTime)) then
+               call WrScr('1/VTK_fps is not an integer multiple of DT. FAST will output VTK information at '//&
+                              trim(num2lstr(1.0_DbKi/TmpRate))//' fps, the closest rate possible.')
+            end if
+         end if
+         CALL MKDIR('bd_vtk')
+      end if
+
+      !usr%VTK_tWidth = CEILING( log10( real(n_t_final, ReKi) / usr%n_VTKTime ) ) + 1
+      usr%VTK_tWidth  = 6_IntKi  ! Hard-code this to 6 numbers because the total number of time-steps is unknown
+   end SUBROUTINE SetVTKvars
  
 
    ! Creates a mesh for the user distributed loads
@@ -576,9 +633,15 @@ MODULE BeamDynLib
    ! Path to the structure input file
    usr%BD_InitInput%InputFile = usr%InputFile
 
+   !---------------------- Outputs ---------------------------------------------------------
+   !check that usr%WrVTK, usr%VTK_fps are set correctly
+   if (usr%WrVTK < 0 .or. usr%WrVTK > 2) then
+      CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+   endif
+
    ! initialize the usr%BD_InitInput values not in the driver input file
    usr%BD_InitInput%RootName     = TRIM(usr%BD_Initinput%InputFile)
-   usr%BD_InitInput%RootDisp     = 0.d0
+   usr%BD_InitInput%RootDisp     = MATMUL(usr%BD_InitInput%GlbPos(:),usr%RootRelInit) - usr%BD_InitInput%GlbPos(:)
    usr%BD_InitInput%RootVel(1:3) = Cross_Product(usr%BD_InitInput%RootVel(4:6),usr%BD_InitInput%GlbPos(:))
    usr%BD_InitInput%DynamicSolve = usr%DynamicSolve      ! QuasiStatic options handled within the BD code.
        
@@ -907,7 +970,7 @@ SUBROUTINE Dvr_WriteOutputLine(t,OutUnit, OutFmt, Output)
      ! write a new line (advance to the next line)
    write (OutUnit,'()')
       
-end subroutine Dvr_WriteOutputLine
+end SUBROUTINE Dvr_WriteOutputLine
 
 ! Recomputes the Time Stepping scheme coefficient when dt is updated in BD_refresh
 ! This is copy-pasted from BeamDyn.f90:BD_TiSchmComputeCoefficients. But the original function is PRIVATE, so I copied it here to avoid having to modify the BD sources

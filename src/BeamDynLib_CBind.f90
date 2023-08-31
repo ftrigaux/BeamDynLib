@@ -19,6 +19,7 @@ MODULE BeamDynLib_CBind
                            DynamicSolve,                           &
                            omega, domega, gravity,                 &
                            GlbPos, GlbRotBladeT0, RootOri,         &
+                           WrVTK, VTK_fps,                         &
                            nxLoads, nxDisp) BIND(C,NAME="f_initBeamDyn")
 
         INTEGER(KIND=C_INT), INTENT(IN), VALUE           :: nBeam,idx
@@ -27,6 +28,7 @@ MODULE BeamDynLib_CBind
         INTEGER(KIND=C_INT), INTENT(IN), OPTIONAL        :: nt, DynamicSolve, GlbRotBladeT0
         REAL(KIND=C_DOUBLE), INTENT(IN), OPTIONAL        :: omega(3), domega(3), gravity(3)
         REAL(KIND=C_DOUBLE), INTENT(IN), OPTIONAL        :: GlbPos(3), RootOri(3,3)
+        INTEGER(KIND=C_INT), INTENT(IN), OPTIONAL        :: WrVTK, VTK_fps
         INTEGER(KIND=C_INT), INTENT(  OUT)               :: nxLoads,nxDisp        ! Returns the number of nodes for loads and displacement
 
 
@@ -56,6 +58,9 @@ MODULE BeamDynLib_CBind
         IF(PRESENT(omega))   THEN; BD_UsrData(idx)%omega(:)    =  omega(:);   ELSE; BD_UsrData(idx)%omega    = 0.0; ENDIF    ! Angular velocity vector
         IF(PRESENT(domega))  THEN; BD_UsrData(idx)%domega(:)   = domega(:);   ELSE; BD_UsrData(idx)%domega   = 0.0; ENDIF    ! Angular acceleration vector
         IF(PRESENT(gravity)) THEN; BD_UsrData(idx)%grav(:)     = gravity(:);  ELSE; BD_UsrData(idx)%grav     = 0.0; ENDIF    ! Angular acceleration vector
+
+        IF(PRESENT(gravity)) THEN; BD_UsrData(idx)%WrVTK     = WrVTK;    ELSE; BD_UsrData(idx)%WrVTK     = 0; ENDIF    ! Angular acceleration vector
+        IF(PRESENT(gravity)) THEN; BD_UsrData(idx)%VTK_fps   = VTK_fps;  ELSE; BD_UsrData(idx)%VTK_fps   = 0.0; ENDIF    ! Angular acceleration vector
 
         ! copy string input file from C to Fortran
         j=1

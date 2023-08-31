@@ -45,7 +45,7 @@ OPT    =
 #FFLAGS = -O2 -m$(BITS) -fbacktrace -ffree-line-length-none -x f95-cpp-input  -fcheck=bounds -C
 #FFLAGS = -O3 -fbacktrace -ffree-line-length-none -x f95-cpp-input
 #LDFLAGS = -O2 -m$(BITS)  -fbacktrace $(BLAS_LAPACK_LIBS)
-FFLAGS  = $(OPT) -O2 -m$(BITS)  -fdefault-real-8 -fbacktrace -ffree-line-length-none -x f95-cpp-input -Wsurprising -DDOUBLE_PRECISION -fpic #-fcheck=all
+FFLAGS  = $(OPT) -O2 -m$(BITS)  -fdefault-real-8 -fbacktrace -ffree-line-length-none -x f95-cpp-input -Wsurprising -DOPENFAST_DOUBLE_PRECISION -fpic #-fcheck=all
 LDFLAGS = $(OPT) -O2 -m$(BITS) -fbacktrace
 
 
@@ -96,6 +96,9 @@ LIB_SOURCES =           \
 	ModMesh.f90          \
 	ModMesh_Mapping.f90  \
 	NWTC_Library.f90     \
+	VTK.f90              \
+	YAML.f90             \
+	JSON.f90             \
 
 NETLIB_SOURCES=             \
 		  NWTC_LAPACK.f90
@@ -145,7 +148,7 @@ NWTC_Library_Types.obj:     $(SYS_FILE).obj
 NWTC_IO.obj:                NWTC_Library_Types.obj VersionInfo.obj
 NWTC_Num.obj:               NWTC_IO.obj
 ModMesh_Types.obj:          NWTC_Num.obj
-ModMesh.obj:                ModMesh_Types.obj
+ModMesh.obj:                ModMesh_Types.obj VTK.obj
 ModMesh_Mapping.obj:        ModMesh.obj NWTC_LAPACK.obj
 NWTC_Library.obj:           ModMesh.obj  ModMesh_Mapping.obj
 

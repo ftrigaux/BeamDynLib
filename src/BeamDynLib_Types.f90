@@ -15,6 +15,7 @@ MODULE BeamDynLib_Types
       REAL(DbKi)     :: t             ! time
       REAL(DbKi)     :: dt            ! time increment
       INTEGER(IntKi) :: nt            ! number of substep
+      INTEGER(IntKi) :: n_t_vtk       ! global vtk step counter
       
       REAL(ReKi)     :: GlbPos(3)        ! Initial vector position 
       REAL(ReKi)     :: RootOri(3,3)     ! DCM of the initial root orientation
@@ -52,6 +53,13 @@ MODULE BeamDynLib_Types
       ! Private variables used inside BeamDyn code
       TYPE(MeshType)                                :: RotationCenter
       TYPE(MeshMapType)                             :: Map_RotationCenter_to_RootMotion
+
+      ! Variables for vtk output
+      INTEGER(IntKi)                                :: WrVTK            ! VTK visualization data output: (switch) {0=none; 1=init; 2=animation}
+      INTEGER(IntKi)                                :: VTK_fps          ! Frame rate for VTK output (frames per second) {will use closest integer multiple of DT} [used only if WrVTK=2]
+      INTEGER(IntKi)                                :: n_VTKTime        ! Number of time steps between writing VTK files
+      INTEGER(IntKi)                                :: VTK_tWidth       ! number of digits in the time part of file name
+      character(1024)                               :: VTK_OutFileRoot  ! rootname for the output file
 
    END TYPE
 

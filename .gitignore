@@ -12,3 +12,4 @@ __pycache__
 **.pdf
 run/IEA15MW_dynamic_testGavity
 **/*.out
+**/bd_vtk

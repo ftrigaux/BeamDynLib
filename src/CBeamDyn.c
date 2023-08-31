@@ -28,6 +28,7 @@ void BD_initBeamDyn(BD_Data *bd)
                 &bd->DynamicSolve,       
                 bd->omega, bd->domega, bd->gravity,      
                 bd->GlbPos, &bd->GlbRotBladeT0, bd->RootOri,
+                &bd->WrVTK, &bd->VTK_fps,
                 &bd->nxL, &bd->nxD);
 
     ALLOCATE2(bd->xLoads,       double,3,bd->nxL);
@@ -252,6 +253,9 @@ int main(int argc, char *argv[])
             }
         }
         bd[k]->GlbPos[2]    = 1.5;
+
+        bd[k]->WrVTK   = 0;        
+        bd[k]->VTK_fps = 0;        
 
         BD_initBeamDyn(bd[k]);
 

@@ -78,6 +78,8 @@ typedef struct
     double GlbPos[3];                   // Vector to the blade root, typically (0,0,Rtip)
     double RootOri[3][3]; // Global frame orientation and Blade root orientation
 
+    int WrVTK, VTK_fps;  // VTK visualization data output: (switch) {0=none; 1=init; 2=animation} // Frame rate for VTK output (frames per second) {will use closest integer multiple of DT} [used only if WrVTK=2]
+
     int     nt;                   // Number of time step per solve
     double  dt;                   // Time increment [s]
     double  t;                    // Current structural time [s]
@@ -121,7 +123,7 @@ void BD_getRotationMatrix(double Rot[][3], double c[3]);
 
 
 // Fortran functions
-void f_initBeamDyn(int,char*,int,double*,int*,double*,int*,double[3],double[3],double[3],double[3],int*,double[3][3],int*,int*);
+void f_initBeamDyn(int,char*,int,double*,int*,double*,int*,double[3],double[3],double[3],double[3],int*,double[3][3],int*,int*,int*,int*);
 
 void f_refresh(int,double*,int*,double*);
 
