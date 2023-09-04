@@ -152,6 +152,10 @@ ModMesh.obj:                ModMesh_Types.obj VTK.obj
 ModMesh_Mapping.obj:        ModMesh.obj NWTC_LAPACK.obj
 NWTC_Library.obj:           ModMesh.obj  ModMesh_Mapping.obj
 
+YAML.obj:                   SingPrec.obj NWTC_Base.obj NWTC_IO.obj
+VTK.obj:                    SingPrec.obj NWTC_Base.obj NWTC_IO.obj
+JSON.obj:                   SingPrec.obj NWTC_Base.obj NWTC_IO.obj
+
 NWTC_LAPACK.obj:            NWTC_Base.obj
 
 BeamDyn_Types.obj:       NWTC_Library.obj  $(BD_DIR)/BeamDyn_Types.f90
