@@ -4627,7 +4627,6 @@ SUBROUTINE BD_BoundaryGA2(x,p,u,OtherState, ErrStat, ErrMsg)
    x%q(1:3,1) = u%RootMotion%TranslationDisp(1:3,1)
 
       ! Root rotations
-      write(*,*) u%RootMotion%Orientation(:,:,1)
    CALL ExtractRelativeRotation(u%RootMotion%Orientation(:,:,1),p, x%q(4:6,1), ErrStat2, ErrMsg2)
    CALL SetErrStat(ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName)
    if (ErrStat >= AbortErrLev) return
