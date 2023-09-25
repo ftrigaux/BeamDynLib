@@ -163,7 +163,11 @@ MODULE BeamDynLib
          usr%n_t_vtk = 0
          call MeshWrVTK( (/0.0_SiKi, 0.0_SiKi, 0.0_SiKi /), usr%BD_Output%BldMotion,   trim(usr%VTK_OutFileRoot)//'_BldMotion',  usr%n_t_vtk, .true., ErrStat, ErrMsg, usr%VTK_tWidth )
          call MeshWrVTK( (/0.0_SiKi, 0.0_SiKi, 0.0_SiKi /), usr%BD_Input(1)%PointLoad, trim(usr%VTK_OutFileRoot)//'_PointLoad',  usr%n_t_vtk, .true., ErrStat, ErrMsg, usr%VTK_tWidth )
-         call MeshWrVTK( (/0.0_SiKi, 0.0_SiKi, 0.0_SiKi /), usr%BD_Input(1)%DistrLoad, trim(usr%VTK_OutFileRoot)//'_DistrLoad',  usr%n_t_vtk, .true., ErrStat, ErrMsg, usr%VTK_tWidth )
+         IF (usr%BD_Parameter%BldMotionNodeLoc == BD_MESH_QP) THEN
+            CALL MeshWrVTK( (/0.0_SiKi, 0.0_SiKi, 0.0_SiKi /), usr%BD_Input(1)%DistrLoad, trim(usr%VTK_OutFileRoot)//'_DistrLoad',  usr%n_t_vtk, .true., ErrStat, ErrMsg, usr%VTK_tWidth, Sib=usr%BD_Output%BldMotion )
+         ELSE
+            CALL MeshWrVTK( (/0.0_SiKi, 0.0_SiKi, 0.0_SiKi /), usr%BD_Input(1)%DistrLoad, trim(usr%VTK_OutFileRoot)//'_DistrLoad',  usr%n_t_vtk, .true., ErrStat, ErrMsg, usr%VTK_tWidth)
+         ENDIF
          CALL CheckError(usr,ErrStat,ErrMsg,"during MeshWrVTK() function of BeamDyn")
       endif
 
@@ -234,7 +238,11 @@ MODULE BeamDynLib
             usr%n_t_vtk = usr%n_t_vtk + 1
             call MeshWrVTK( (/0.0_SiKi, 0.0_SiKi, 0.0_SiKi /), usr%BD_Output%BldMotion,   trim(usr%VTK_OutFileRoot)//'_BldMotion', usr%n_t_vtk, .true., ErrStat, ErrMsg, usr%VTK_tWidth )
             call MeshWrVTK( (/0.0_SiKi, 0.0_SiKi, 0.0_SiKi /), usr%BD_Input(1)%PointLoad, trim(usr%VTK_OutFileRoot)//'_PointLoad', usr%n_t_vtk, .true., ErrStat, ErrMsg, usr%VTK_tWidth )
-            call MeshWrVTK( (/0.0_SiKi, 0.0_SiKi, 0.0_SiKi /), usr%BD_Input(1)%DistrLoad, trim(usr%VTK_OutFileRoot)//'_DistrLoad', usr%n_t_vtk, .true., ErrStat, ErrMsg, usr%VTK_tWidth )
+            IF (usr%BD_Parameter%BldMotionNodeLoc == BD_MESH_QP) THEN
+               CALL MeshWrVTK( (/0.0_SiKi, 0.0_SiKi, 0.0_SiKi /), usr%BD_Input(1)%DistrLoad, trim(usr%VTK_OutFileRoot)//'_DistrLoad',  usr%n_t_vtk, .true., ErrStat, ErrMsg, usr%VTK_tWidth, Sib=usr%BD_Output%BldMotion )
+            ELSE
+               CALL MeshWrVTK( (/0.0_SiKi, 0.0_SiKi, 0.0_SiKi /), usr%BD_Input(1)%DistrLoad, trim(usr%VTK_OutFileRoot)//'_DistrLoad',  usr%n_t_vtk, .true., ErrStat, ErrMsg, usr%VTK_tWidth)
+            ENDIF
             CALL CheckError(usr,ErrStat,ErrMsg,"during MeshWrVTK() function of BeamDyn")
 
          endif
@@ -819,9 +827,6 @@ SUBROUTINE BDUsr_InputSolve(usr,i)
    !.............................
    ! Rotation around pitch axis that must be added to the blade root motion.
    ! This must be done after the transfer from the rotation center mesh!
-   temp_R = MATMUL(usr%BD_Input(i)%RootMotion%Orientation(:,:,1),TRANSPOSE(usr%BD_Input(i)%HubMotion%Orientation(:,:,1)))
-   temp_cc = EulerExtract(temp_R)   != Hub_theta_Root
-   u_theta_pitch = -temp_cc(3)
 
    ! If the rotationVel and acceleration due to pitch are important for the structural dynamics, they should be provided. Here, forced to zero
    omegaP = 0.0
@@ -830,9 +835,10 @@ SUBROUTINE BDUsr_InputSolve(usr,i)
    usr%BD_Input(i)%RootMotion%RotationAcc(:,1) = usr%BD_Input(i)%RootMotion%RotationAcc(:,1) - alphaP * usr%BD_Input(i)%RootMotion%Orientation(3,:,1)
 
    ! Add the pitch angle
-   temp_cc(3) = usr%PAngInp_rad ! Minus sign?
-   temp_R = EulerConstruct(temp_cc)
-   usr%BD_Input(i)%RootMotion%Orientation(:,:,1) = MATMUL(temp_R,usr%BD_Input(i)%HubMotion%Orientation(:,:,1))
+   temp_cc    = 0.0_ReKi
+   temp_cc(3) = -usr%PAngInp_rad
+   temp_R     = EulerConstruct(temp_cc)
+   usr%BD_Input(i)%RootMotion%Orientation(:,:,1) = MATMUL(temp_R,usr%BD_Input(i)%RootMotion%Orientation(:,:,1)) ! Post-multiply around z
 
    !.............................
    ! LINE2 mesh: DistrLoad
