@@ -587,7 +587,6 @@ MODULE BeamDynLib
          F(4:6,i) = MATMUL(usr%BD_MiscVar%u2%RootMotion%Orientation(:,:,1), usr%BD_MiscVar%BldInternalForceQP(4:6,i))
       END SELECT
    END DO
-   WRITE(*,*) "usr%BD_MiscVar%u2%RootMotion%Orientation(:,:,1)",usr%BD_MiscVar%u2%RootMotion%Orientation(:,:,1) ! to remove!!
 
    END SUBROUTINE BeamDyn_C_getReactionForce
 
@@ -856,7 +855,6 @@ SUBROUTINE BDUsr_InputSolve(usr,i)
       usr%BD_Input(i)%DistrLoad%Force(:,j) =  MATMUL(TRANSPOSE(usr%BD_Input(i)%RootMotion%Orientation(:,:,1)), usr%loads(1:3,j))
       usr%BD_Input(i)%DistrLoad%Moment(:,j)=  MATMUL(TRANSPOSE(usr%BD_Input(i)%RootMotion%Orientation(:,:,1)), usr%loads(4:6,j))
    ENDDO
-   WRITE(*,*) "usr%BD_Input(i)%RootMotion%Orientation(:,:,1))",usr%BD_Input(i)%RootMotion%Orientation(:,:,1) ! to remove !!
 
    ! ! This is just for check: 
    ! temp_R = MATMUL(usr%BD_Input(i)%RootMotion%Orientation(:,:,1),TRANSPOSE(usr%BD_Input(i)%HubMotion%Orientation(:,:,1)))
