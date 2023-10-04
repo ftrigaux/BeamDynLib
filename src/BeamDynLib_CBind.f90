@@ -17,7 +17,7 @@ MODULE BeamDynLib_CBind
     SUBROUTINE initBeamDyn(nBeam,inputFile,idx,                    &
                            dt, nt, t,                              &
                            DynamicSolve,                           &
-                           omega, domega, gravity,                 &
+                           omega, domega, gravity, PAngInp_rad,    &
                            GlbPos, GlbRotBladeT0, RootOri,         &
                            WrVTK, VTK_fps,                         &
                            nxLoads, nxDisp) BIND(C,NAME="f_initBeamDyn")
@@ -26,7 +26,7 @@ MODULE BeamDynLib_CBind
         CHARACTER(C_CHAR),   INTENT(IN)                  :: inputFile(*)
         REAL(KIND=C_DOUBLE), INTENT(IN), OPTIONAL        :: dt, t
         INTEGER(KIND=C_INT), INTENT(IN), OPTIONAL        :: nt, DynamicSolve, GlbRotBladeT0
-        REAL(KIND=C_DOUBLE), INTENT(IN), OPTIONAL        :: omega(3), domega(3), gravity(3)
+        REAL(KIND=C_DOUBLE), INTENT(IN), OPTIONAL        :: omega(3), domega(3), gravity(3), PAngInp_rad
         REAL(KIND=C_DOUBLE), INTENT(IN), OPTIONAL        :: GlbPos(3), RootOri(3,3)
         INTEGER(KIND=C_INT), INTENT(IN), OPTIONAL        :: WrVTK, VTK_fps
         INTEGER(KIND=C_INT), INTENT(  OUT)               :: nxLoads,nxDisp        ! Returns the number of nodes for loads and displacement
@@ -54,13 +54,13 @@ MODULE BeamDynLib_CBind
         END DO 
 
         BD_UsrData(idx)%theta_rot = 0.0;
-        BD_UsrData(idx)%PAngInp_rad = 0.0;
-        IF(PRESENT(omega))   THEN; BD_UsrData(idx)%omega(:)    =  omega(:);   ELSE; BD_UsrData(idx)%omega    = 0.0; ENDIF    ! Angular velocity vector
-        IF(PRESENT(domega))  THEN; BD_UsrData(idx)%domega(:)   = domega(:);   ELSE; BD_UsrData(idx)%domega   = 0.0; ENDIF    ! Angular acceleration vector
-        IF(PRESENT(gravity)) THEN; BD_UsrData(idx)%grav(:)     = gravity(:);  ELSE; BD_UsrData(idx)%grav     = 0.0; ENDIF    ! Angular acceleration vector
+        IF(PRESENT(omega))       THEN; BD_UsrData(idx)%omega(:)     =  omega(:);    ELSE; BD_UsrData(idx)%omega       = 0.0; ENDIF    ! Angular velocity vector
+        IF(PRESENT(domega))      THEN; BD_UsrData(idx)%domega(:)    = domega(:);    ELSE; BD_UsrData(idx)%domega      = 0.0; ENDIF    ! Angular acceleration vector
+        IF(PRESENT(gravity))     THEN; BD_UsrData(idx)%grav(:)      = gravity(:);   ELSE; BD_UsrData(idx)%grav        = 0.0; ENDIF    ! Angular acceleration vector
+        IF(PRESENT(PAngInp_rad)) THEN; BD_UsrData(idx)%PAngInp_rad  = PAngInp_rad;  ELSE; BD_UsrData(idx)%PAngInp_rad = 0.0; ENDIF    ! initial pitch angle
 
-        IF(PRESENT(gravity)) THEN; BD_UsrData(idx)%WrVTK     = WrVTK;    ELSE; BD_UsrData(idx)%WrVTK     = 0; ENDIF    ! Angular acceleration vector
-        IF(PRESENT(gravity)) THEN; BD_UsrData(idx)%VTK_fps   = VTK_fps;  ELSE; BD_UsrData(idx)%VTK_fps   = 0.0; ENDIF    ! Angular acceleration vector
+        IF(PRESENT(WrVTK))   THEN; BD_UsrData(idx)%WrVTK     = WrVTK;    ELSE; BD_UsrData(idx)%WrVTK     = 0; ENDIF    ! Angular acceleration vector
+        IF(PRESENT(VTK_fps)) THEN; BD_UsrData(idx)%VTK_fps   = VTK_fps;  ELSE; BD_UsrData(idx)%VTK_fps   = 0.0; ENDIF    ! Angular acceleration vector
 
         ! copy string input file from C to Fortran
         j=1

@@ -66,7 +66,7 @@ class PyBeamDyn(ct.CDLL):
         self.f_initBeamDyn.argtypes = [ct.c_int,ct.c_char_p,ct.c_int,
                                     ct.POINTER(ct.c_double),ct.POINTER(ct.c_int),ct.POINTER(ct.c_double),
                                     ct.POINTER(ct.c_int),
-                                    ND_ARRAY_3,ND_ARRAY_3,ND_ARRAY_3,
+                                    ND_ARRAY_3,ND_ARRAY_3,ND_ARRAY_3,ct.POINTER(ct.c_double),
                                     ND_ARRAY_3,ct.POINTER(ct.c_int),ND_ARRAY_3x3,
                                     ct.POINTER(ct.c_int),ct.POINTER(ct.c_int),
                                     ct.POINTER(ct.c_int), ct.POINTER(ct.c_int)]

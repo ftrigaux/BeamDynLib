@@ -21,12 +21,11 @@ int i_,j_,k_; // iterator for macros
 void BD_initBeamDyn(BD_Data *bd)
 {
     bd->theta_rot = 0.0;
-    bd->pitch_rad = 0.0;
     
     f_initBeamDyn(bd->nBeam,bd->inputFile,bd->idx,
                 &bd->dt, &bd->nt, &bd->t,          
                 &bd->DynamicSolve,       
-                bd->omega, bd->domega, bd->gravity,      
+                bd->omega, bd->domega, bd->gravity, &bd->pitch_rad,
                 bd->GlbPos, &bd->GlbRotBladeT0, bd->RootOri,
                 &bd->WrVTK, &bd->VTK_fps,
                 &bd->nxL, &bd->nxD);

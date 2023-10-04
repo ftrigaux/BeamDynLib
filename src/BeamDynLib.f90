@@ -587,6 +587,7 @@ MODULE BeamDynLib
          F(4:6,i) = MATMUL(usr%BD_MiscVar%u2%RootMotion%Orientation(:,:,1), usr%BD_MiscVar%BldInternalForceQP(4:6,i))
       END SELECT
    END DO
+   WRITE(*,*) "usr%BD_MiscVar%u2%RootMotion%Orientation(:,:,1)",usr%BD_MiscVar%u2%RootMotion%Orientation(:,:,1) ! to remove!!
 
    END SUBROUTINE BeamDyn_C_getReactionForce
 
@@ -595,6 +596,8 @@ MODULE BeamDynLib
    SUBROUTINE BD_initFromUsrData(usr)
 
    TYPE(BD_UsrDataType) :: usr
+
+   REAL(ReKi)                   :: temp_cc(3), temp_R(3,3)
 
    INTEGER(IntKi)               :: ErrStat2                     ! Temporary Error status
    CHARACTER(ErrMsgLen)         :: ErrMsg2                      ! Temporary Error message
@@ -633,6 +636,12 @@ MODULE BeamDynLib
 
    usr%GlbRot(1:3,1:3)     = usr%BD_InitInput%GlbRot(1:3,1:3)
    usr%BD_InitInput%HubRot = usr%BD_InitInput%GlbRot(1:3,1:3)
+
+   ! Root Ori is used as first guess for the rootMotion%Orientation in BD_init. Hence, you must add the initial pitch
+   temp_cc    = 0.0_ReKi
+   temp_cc(3) = usr%PAngInp_rad
+   temp_R     = EulerConstruct(temp_cc)
+   usr%BD_InitInput%RootOri(1:3,1:3) = MATMUL(temp_R,usr%BD_InitInput%RootOri(1:3,1:3)) ! multiply around z
 
    !---------------------- INITIAL VELOCITY PARAMETER --------------------------------
    usr%BD_InitInput%RootVel(4:6) = usr%omega(1:3)
@@ -836,7 +845,7 @@ SUBROUTINE BDUsr_InputSolve(usr,i)
 
    ! Add the pitch angle
    temp_cc    = 0.0_ReKi
-   temp_cc(3) = -usr%PAngInp_rad
+   temp_cc(3) = usr%PAngInp_rad
    temp_R     = EulerConstruct(temp_cc)
    usr%BD_Input(i)%RootMotion%Orientation(:,:,1) = MATMUL(temp_R,usr%BD_Input(i)%RootMotion%Orientation(:,:,1)) ! Post-multiply around z
 
@@ -847,6 +856,7 @@ SUBROUTINE BDUsr_InputSolve(usr,i)
       usr%BD_Input(i)%DistrLoad%Force(:,j) =  MATMUL(TRANSPOSE(usr%BD_Input(i)%RootMotion%Orientation(:,:,1)), usr%loads(1:3,j))
       usr%BD_Input(i)%DistrLoad%Moment(:,j)=  MATMUL(TRANSPOSE(usr%BD_Input(i)%RootMotion%Orientation(:,:,1)), usr%loads(4:6,j))
    ENDDO
+   WRITE(*,*) "usr%BD_Input(i)%RootMotion%Orientation(:,:,1))",usr%BD_Input(i)%RootMotion%Orientation(:,:,1) ! to remove !!
 
    ! ! This is just for check: 
    ! temp_R = MATMUL(usr%BD_Input(i)%RootMotion%Orientation(:,:,1),TRANSPOSE(usr%BD_Input(i)%HubMotion%Orientation(:,:,1)))
