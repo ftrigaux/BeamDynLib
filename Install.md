@@ -16,6 +16,9 @@ If you are using OpenBlas (usually available on cluster as a module to load), yo
 #LAPACK_LINK  = -llapack -lblas # Must become ->
 LAPACK_LINK  = -lopenblas
 ```
+The specific makefile for the Lucia Tier-0 supercomputer is provided as Makefile.lucia, and uses OpenBLAS, as well as the standard installation directory.
+
+An installation script `install.sh` is included to guide you to the whole installing process on Lucia.
 
 ## Install from updated OpenFast sources
 ### Get the sources, or update the source from the OpenFast repository
@@ -31,12 +34,12 @@ The interface consists of several types and routines included in the files start
 ### Build the project
 On Linux and MacOS, if you have gfortran installed, you can simply run
 ```
-make
+make -j 8
 ```
 in your terminal. This will create a `obj` directory with all the compiled objects, and an executable `BeamDyn`.
 To make a shared object, that can be used to access the library from C or Python, use 
 ```
-make lib
+make lib -j 8
 ```
 To build the fortran only program version, use 
 ```

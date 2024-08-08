@@ -29,8 +29,8 @@ else
 	FAST_dir=
 
 	REGISTRY   =
-	LAPACK_LINK  = -llapack -lblas
-	#LAPACK_LINK  = -lopenblas
+	#LAPACK_LINK  = -llapack -lblas
+	LAPACK_LINK  = -lopenblas
 endif
 
 BD_DIR = src
@@ -195,7 +195,7 @@ OPTIFLAG=-g
 CFLAGS=$(OPTIFLAG) -fPIC
 $(OBJC): $(OBJDIR)/%.o: $(DIRC)/%.c
 	$(CC) $(CFLAGS) -c  $< -o $@ 
-INSTALL_DIR=/usr/local
+INSTALL_DIR=$(HOME)/.local/
 
 $(DEST_DIR)/$(OUTPUT_NAME)$(EXE_EXT): $(ALL_OBJS) $(OBJC) | $(INTER_DIR)
 	$(FC) $(LDFLAGS) -I $(INTER_DIR) -o $(DEST_DIR)/$(OUTPUT_NAME)$(EXE_EXT) \

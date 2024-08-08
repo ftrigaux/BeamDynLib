@@ -13,3 +13,5 @@ __pycache__
 run/IEA15MW_dynamic_testGavity
 **/*.out
 **/bd_vtk
+run/LargeDispIEA15
+run/IEA15MW_dynamic_testBendTwist
