@@ -31,7 +31,7 @@ mkdir -p ~/.local/{bin,lib,src,include}
 cd ~/.local/src
 
 # Clone, compile and install BeamDynLib
-git clone https://git.immc.ucl.ac.be/ftrigaux/beamdyn-library BeamDynLib
+git clone https://git.immc.ucl.ac.be/BigFlow/beamdyn-library BeamDynLib
 cd BeamDynLib
 mv Makefile Makefile.darwin
 mv Makefile.lucia Makefile
